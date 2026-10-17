@@ -56,58 +56,56 @@ Các ứng dụng chat người dùng yêu cầu được chia làm **3 nhóm k�
 - **Telegram** (`https://web.telegram.org/k/` hoặc `/a/`)
 - **WhatsApp**, **Slack**, **Discord**, **Microsoft Teams**, **Viber Web**, **WeChat Web**, **Google Chat**, **Skype**.
 
-### Nhóm 2: Ứng dụng chạy qua Chrome Extension Engine (LINE)
-- **LINE Personal Chat**: LINE không có trang web chat thông thường cho tài khoản cá nhân nhưng phát hành chính thức **LINE Chrome Extension** (`ophjlpahpchlmihnnnihgmmeilfjmjjc`).
-- Nhờ sử dụng Electron (Chromium), MultiWork có thể nạp trực tiếp extension chính thức của LINE vào một `WebContentsView` riêng biệt, chạy mượt trên cả **Windows và macOS** như một tab nội bộ.
+### Nhóm 2: Ứng dụng chạy qua Chrome Extension Engine (LINE Cá Nhân)
+- **LINE Personal Chat**: Tài khoản cá nhân của LINE sử dụng chính thức **LINE Chrome Extension** (`ophjlpahpchlmihnnnihgmmeilfjmjjc`).
+- Nhờ sử dụng Electron (Chromium), MultiWork nạp trực tiếp extension chính thức của LINE vào một `WebContentsView` riêng biệt, chạy mượt trên cả **Windows và macOS** như một tab nội bộ và cho phép Preload script bắt sự kiện tin nhắn mới để dịch tự động.
 
-### Nhóm 3: Ứng dụng đóng chỉ có bản Desktop/Mobile (KakaoTalk)
-- **KakaoTalk**: Không có phiên bản Web cho người dùng cá nhân (chỉ có KakaoTalk PC cho Windows/macOS và bản Mobile Android/iOS).
-- **3 phương án tích hợp KakaoTalk để nghiên cứu cùng Muse**:
-  1. **Phương án 3A (Window Docking / Native Embedder - Khả thi nhất cho bản Desktop)**:
-     - Trên Windows: Sử dụng Win32 API (`SetParent` / `SetWindowPos`) để nhúng cửa sổ ứng dụng **KakaoTalk PC** (với tính năng Auto-login bật sẵn của KakaoTalk PC) vào thẳng khung hiển thị của MultiWork.
-     - Trên macOS: Sử dụng Accessibility API (`AXUIElement`) để đồng bộ vị trí/kích thước cửa sổ KakaoTalk Mac khớp liền mạch với vùng khung nhìn của MultiWork, hoặc điều khiển ẩn/hiện tức thì khi chuyển tab.
-  2. **Phương án 3B (Embedded Android/Waydroid/Scrcpy Bridge hoặc Matrix Bridge)**:
-     - Sử dụng giao thức cầu nối hoặc container nhẹ.
-  3. **Phương án 3C (LOCO Protocol Unofficial Client / Web Bridge)**:
-     - Nghiên cứu thư viện giao thức của KakaoTalk (lưu ý rủi ro chính sách khóa tài khoản của Kakao).
+### Nhóm 3: Ứng dụng đóng chỉ có bản Desktop/Mobile (KakaoTalk Cá Nhân)
+- **KakaoTalk Cá Nhân**: Không có phiên bản Web và Kakao kiểm soát rất gắt các giao thức không chính thức (dễ khóa tài khoản cá nhân).
+- **Giải pháp chính thức được chọn (An toàn 100% không lo khóa tài khoản)**:
+  - **Native Window Docking + OS Notification/UI Automation Reader**:
+    - Tận dụng tính năng **Auto-login** sẵn có của **KakaoTalk PC (Windows) & KakaoTalk Mac (macOS)**.
+    - **Trên Windows**: Sử dụng Win32 API (`SetParent` / `SetWindowPos`) để nhúng cửa sổ KakaoTalk PC vào thẳng khung hiển thị của MultiWork. Đồng thời dùng **Windows Toast Notification Listener & UI Automation** để đọc nội dung tin nhắn khi Sếp `@tag` hoặc giao việc.
+    - **Trên macOS**: Sử dụng Accessibility API (`AXUIElement`) để đồng bộ vị trí/kích thước cửa sổ KakaoTalk Mac khớp liền mạch với vùng khung nhìn của MultiWork và đọc nội dung tin nhắn mới phục vụ AI dịch thuật.
 
 ---
 
 ## 4. Các tính năng chính của Hệ thống (Key Features)
 
-1. **Sidebar đa tầng (Workspaces & Services)**:
-   - Hỗ trợ phân nhóm theo không gian làm việc (VD: *Công việc Hàn Quốc*, *Công việc Việt Nam*, *Cá nhân*).
-   - Hỗ trợ đăng nhập **nhiều tài khoản của cùng 1 ứng dụng** (VD: 3 nick Zalo, 2 nick Telegram, 2 nick Messenger chạy song song).
-2. **Trung tâm Thông báo Hợp nhất (Unified Notification & Unread Badge)**:
-   - Preload Script riêng cho từng dịch vụ (`recipes/zalo/preload.js`, `recipes/messenger/preload.js`...) để đọc số tin nhắn chưa đọc từ DOM / Title và hiển thị chấm đỏ (Badge) tổng hợp trên Sidebar + Icon dưới Taskbar/Dock.
-3. **Trình quản lý tài nguyên thông minh (Smart RAM Hibernation)**:
-   - Tự động giải phóng bộ nhớ (Hibernate) các ứng dụng không mở sau $X$ phút, nhưng có danh sách loại trừ (Whitelist) hoặc đánh thức định kỳ để không mất kết nối.
-4. **Khóa bảo mật ứng dụng (Master Lock)**:
-   - Vì mọi ứng dụng chat đều đã đăng nhập sẵn trong MultiWork, cung cấp tính năng khóa màn hình MultiWork bằng mật khẩu / Windows Hello / macOS TouchID khi rời máy.
-5. **Sao lưu & Đồng bộ Phiên (Session Backup / Export)**:
-   - Cho phép xuất (Export) cấu hình các tài khoản đã đăng nhập (mã hóa AES-256) để backup.
+1. **Bố cục 3 Cột Thông Minh (3-Column Workspace)**:
+   - **Cột Trái (Sidebar)**: Danh sách các ứng dụng & tài khoản cá nhân (hỗ trợ đăng nhập nhiều tài khoản Zalo, Telegram, Messenger, Naver Works, LINE, KakaoTalk cùng lúc).
+   - **Cột Giữa (Main Chat Viewport)**: Hiển thị cửa sổ chat đang chọn.
+   - **Cột Phải (AI Work Co-Pilot Panel)**: Bảng điều khiển trợ lý công việc (Tin nhắn Sếp đã dịch, To-Do List, Calendar/Schedule).
+2. **AI Tự Động Dịch & Bắt Chỉ Thị Sếp (Boss & `@Mention` Detector)**:
+   - Tự động phát hiện khi nhân viên bị `@tag` (`@Tên`, `@All`) hoặc khi có tin nhắn từ danh sách **Sếp / Quản lý (VIP Watchlist)** trong các nhóm chat.
+   - **Tự động dịch đa ngôn ngữ** (Hàn $\leftrightarrow$ Việt, Nhật $\leftrightarrow$ Việt, Anh $\leftrightarrow$ Việt, Trung $\leftrightarrow$ Việt) theo ngữ cảnh công việc.
+3. **Tự Động Tạo To-Do List & Đặt Lịch Hẹn (Auto To-Do & Event Scheduler)**:
+   - AI tự động bóc tách yêu cầu của Sếp thành các đầu việc cụ thể (**To-Do Item** có hạn chót `Deadline`, mức độ ưu tiên, gắn kèm link nhảy về đúng ứng dụng chat gốc).
+   - Tự động nhận diện lịch họp/sự kiện trong tin nhắn để tạo **Event / Schedule**, đặt chuông báo nhắc trước 15–30 phút và đồng bộ với Google/Outlook Calendar (chi tiết tại [`docs/AI_WORK_ASSISTANT.md`](./AI_WORK_ASSISTANT.md)).
+4. **Trung tâm Thông báo Hợp nhất & Quản lý RAM (Smart Hibernation)**:
+   - Tổng hợp số tin nhắn chưa đọc (Unread Badge) trên Sidebar.
+   - Tự động giải phóng RAM khi tab không mở nhưng vẫn giữ luồng bắt thông báo ngầm để AI không bỏ sót tin nhắn của Sếp.
+5. **Khóa bảo mật ứng dụng (Master Lock)**:
+   - Khóa màn hình MultiWork bằng mật khẩu / Windows Hello / macOS TouchID khi rời máy.
 
 ---
 
 ## 5. Lộ trình Phát triển (Development Roadmap)
 
-### Giai đoạn 1: Khởi tạo Core & MVP (Tuần 1 - 2)
+### Giai đoạn 1: Khởi tạo Core, 3-Column UI & Persistent Session (Tuần 1 - 2)
 - [ ] Khởi tạo bộ khung dự án: **Electron + Vite + React + TypeScript + TailwindCSS**.
 - [ ] Xây dựng `ViewManager` ở Main Process quản lý các `WebContentsView` và `Session Partition`.
-- [ ] Thiết kế giao diện Sidebar (thêm/xóa/chuyển đổi dịch vụ, hỗ trợ đa tài khoản cho cùng 1 dịch vụ).
-- [ ] Tích hợp thành công 4 dịch vụ Web chuẩn: **Zalo, Messenger, Telegram, Naver Works**.
-- [ ] Triển khai cơ chế **Persistent Session Vault** (Cố định User-Agent, lưu trữ Partition, giữ phiên không bị đăng xuất khi tắt/mở app).
+- [ ] Thiết kế giao diện 3 cột: Sidebar trái + Khung Chat giữa + Khung AI To-Do/Schedule bên phải.
+- [ ] Tích hợp 4 dịch vụ Web cá nhân chuẩn: **Zalo, Messenger, Telegram, Naver Works** với cơ chế **Zero Re-login**.
 
-### Giai đoạn 2: Tích hợp LINE & Hệ thống Recipe/Preload (Tuần 3 - 4)
-- [ ] Xây dựng cơ chế **Chromium Extension Loader** trong Electron để tích hợp **LINE** vào cửa sổ MultiWork.
-- [ ] Xây dựng hệ thống **Service Recipes** (Preload scripts thu thập số tin nhắn chưa đọc, chặn quảng cáo/popup thừa, inject Dark Mode đồng bộ).
-- [ ] Triển khai **Keep-Alive Heartbeat Engine** chống tự động đăng xuất khi treo máy lâu.
+### Giai đoạn 2: Tích hợp LINE Cá Nhân & Bộ Bắt Tin Nhắn (Message Interceptor) (Tuần 3 - 4)
+- [ ] Xây dựng cơ chế **Chromium Extension Loader** trong Electron để tích hợp **LINE Cá Nhân** vào cửa sổ MultiWork.
+- [ ] Xây dựng hệ thống **Preload Notification & DOM Observer** cho Zalo, Messenger, Naver Works, Telegram, LINE để bắt thời gian thực mọi tin nhắn có `@tag` hoặc từ Sếp.
 
-### Giai đoạn 3: Tích hợp KakaoTalk & Tối ưu Đa nền tảng Win/Mac (Tuần 5 - 6)
-- [ ] Triển khai module **Native App Bridge / Window Docker** cho **KakaoTalk** trên Windows (Win32 API) và macOS (Accessibility/Window Coordinator).
-- [ ] Tối ưu hóa bộ nhớ (Auto-Hibernation), phím tắt chuyển nhanh (`Ctrl/Cmd + 1..9`, `Ctrl/Cmd + K` tìm kiếm nhanh).
-- [ ] Thêm tính năng **Master Lock** (Mật khẩu / TouchID / Windows Hello).
+### Giai đoạn 3: AI Co-Pilot — Tự Động Dịch, To-Do List & Đặt Lịch (Tuần 5 - 6)
+- [ ] Tích hợp **AI Engine (Gemini / OpenAI Structured Output)**: Tự động dịch tin nhắn của Sếp và bóc tách thành JSON (`TodoItem` + `CalendarEvent`).
+- [ ] Xây dựng giao diện **To-Do List**, **Calendar/Schedule Timeline**, hệ thống chuông nhắc hẹn (Reminder) và cấu hình **Boss Watchlist** (danh sách Sếp/Từ khóa `@mention`).
 
-### Giai đoạn 4: Đóng gói, Tự động cập nhật & Phát hành (Tuần 7)
-- [ ] Cấu hình `electron-builder` đóng gói bộ cài cho **Windows (`.exe` NSIS)** và **macOS (`.dmg` Universal/Apple Silicon + Intel)**.
-- [ ] Thiết lập GitHub Actions CI/CD tự động build cả bản Windows và macOS khi push tag lên repository `MultiWork`.
+### Giai đoạn 4: Tích hợp KakaoTalk Cá Nhân & Đóng gói Win/Mac (Tuần 7 - 8)
+- [ ] Triển khai module **Native Window Docker + OS Notification/UI Reader** cho **KakaoTalk Cá Nhân** trên Windows và macOS.
+- [ ] Đóng gói bộ cài cho **Windows (`.exe`)** và **macOS (`.dmg`)** qua GitHub Actions CI/CD.

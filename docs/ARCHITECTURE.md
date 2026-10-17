@@ -85,36 +85,45 @@ sequenceDiagram
 MultiWork/
 ├── docs/                               # Tài liệu kiến trúc & Kế hoạch nghiên cứu
 │   ├── PLAN.md                         # Kế hoạch tổng thể (Master Plan)
+│   ├── AI_WORK_ASSISTANT.md            # Thiết kế AI Dịch chỉ thị Sếp -> To-Do & Lịch trình
 │   ├── CHAT_PLATFORMS_ANALYSIS.md      # Phân tích kỹ thuật từng nền tảng chat
 │   └── ARCHITECTURE.md                 # Tài liệu kiến trúc hệ thống
 ├── src/
 │   ├── main/                           # Electron Main Process (Node.js + TypeScript)
-│   │   ├── index.ts                    # Entry point khởi tạo BaseWindow
+│   │   ├── index.ts                    # Entry point khởi tạo BaseWindow (Bố cục 3 cột)
 │   │   ├── view-manager.ts             # Quản lý vòng đời các WebContentsView
 │   │   ├── session-vault.ts            # Lưu trữ Cookie vĩnh viễn, cố định User-Agent
 │   │   ├── keep-alive.ts               # Tiến trình chống hết hạn phiên (Anti-Idle)
-│   │   ├── extension-loader.ts         # Bộ nạp Chrome Extension (dành cho LINE)
-│   │   ├── native-dock/                # Module nhúng cửa sổ ứng dụng gốc (KakaoTalk)
-│   │   │   ├── win32-docker.ts         # Sử dụng Koffi/Win32 SetParent trên Windows
-│   │   │   └── macos-docker.ts         # Sử dụng AXUIElement coordinator trên macOS
-│   │   └── ipc-handlers.ts             # Xử lý giao tiếp IPC giữa Sidebar và Main
+│   │   ├── extension-loader.ts         # Bộ nạp Chrome Extension (dành cho LINE cá nhân)
+│   │   ├── ai-assistant/               # Phân hệ AI Tự động Dịch + To-Do + Schedule
+│   │   │   ├── message-interceptor.ts  # Nhận luồng tin nhắn có @tag / từ Sếp
+│   │   │   ├── ai-translator-agent.ts  # Gọi LLM dịch thuật & bóc tách Task/Event JSON
+│   │   │   └── scheduler-alarm.ts      # Quản lý nhắc hẹn & đồng bộ Google/Outlook Calendar
+│   │   ├── native-dock/                # Module nhúng cửa sổ KakaoTalk cá nhân + đọc thông báo
+│   │   │   ├── win32-docker.ts         # Koffi/Win32 SetParent + Toast Notification Listener
+│   │   │   └── macos-docker.ts         # AXUIElement Window Coordinator + Reader trên macOS
+│   │   └── ipc-handlers.ts             # Xử lý giao tiếp IPC giữa UI và Main
 │   ├── preload/                        # Preload Scripts
 │   │   ├── sidebar-preload.ts          # Cầu nối API cho giao diện quản lý chính
-│   │   └── recipes/                    # Script theo dõi tin nhắn chưa đọc từng dịch vụ
+│   │   └── recipes/                    # Script bắt Notification, @mention & Unread Badge
+│   │       ├── base-interceptor.ts     # Hook window.Notification & ServiceWorker chung
 │   │       ├── zalo.ts
 │   │       ├── messenger.ts
 │   │       ├── naver-works.ts
 │   │       ├── telegram.ts
 │   │       └── line.ts
-│   ├── renderer/                       # Giao diện Sidebar & Settings (React + Tailwind)
+│   ├── renderer/                       # Giao diện Sidebar Trái & AI Assistant Phải (React)
 │   │   ├── App.tsx
 │   │   ├── components/
-│   │   │   ├── Sidebar.tsx             # Thanh danh sách các tài khoản chat
-│   │   │   ├── AddServiceModal.tsx     # Hộp thoại thêm tài khoản (Zalo, Kakao, LINE...)
-│   │   │   ├── WorkspaceSwitcher.tsx   # Chuyển đổi nhóm công việc
-│   │   │   └── MasterLockScreen.tsx    # Màn hình khóa mật khẩu bảo vệ
+│   │   │   ├── Sidebar.tsx             # Cột Trái: Danh sách các tài khoản chat cá nhân
+│   │   │   ├── RightAssistantPanel.tsx # Cột Phải: Bảng AI Dịch chỉ thị Sếp, To-Do & Lịch
+│   │   │   ├── BossDirectiveFeed.tsx   # Luồng tin nhắn Sếp / @tag đã dịch tự động
+│   │   │   ├── TodoBoard.tsx           # Quản lý danh sách việc cần làm (To-Do List)
+│   │   │   ├── ScheduleCalendar.tsx    # Lịch biểu, Event & cài đặt chuông nhắc việc
+│   │   │   └── BossWatchlistModal.tsx  # Cài đặt danh sách Sếp & từ khóa @mention
 │   │   └── store/
-│   │       └── useAccountsStore.ts     # Quản lý trạng thái danh sách tài khoản
+│   │       ├── useAccountsStore.ts     # Quản lý trạng thái danh sách tài khoản
+│   │       └── useAssistantStore.ts    # Quản lý trạng thái To-Do, Events, Bản dịch
 │   └── shared/                         # Kiểu dữ liệu dùng chung (TypeScript Interfaces)
 │       └── types.ts
 ├── resources/                          # Icons, Extension CRX của LINE, Assets
@@ -125,7 +134,7 @@ MultiWork/
 
 ---
 
-## 4. Thiết kế Schema Quản lý Tài khoản (`AccountConfig`)
+## 4. Thiết kế Schema Quản lý Tài khoản, To-Do & Lịch trình (`shared/types.ts`)
 
 ```typescript
 export type ServiceType =
@@ -133,10 +142,8 @@ export type ServiceType =
   | 'messenger'
   | 'naver-works'
   | 'telegram'
-  | 'line-extension'
-  | 'line-oa'
-  | 'kakaotalk-native'
-  | 'kakaotalk-channel'
+  | 'line-personal'
+  | 'kakaotalk-personal'
   | 'whatsapp'
   | 'slack'
   | 'discord'
@@ -145,16 +152,49 @@ export type ServiceType =
 
 export interface AccountInstance {
   id: string;                      // UUID duy nhất (VD: "acc_9f8a7b...")
-  serviceType: ServiceType;        // Loại dịch vụ chat
-  displayName: string;             // Tên gợi nhớ (VD: "Zalo Công ty", "Zalo Cá nhân")
+  serviceType: ServiceType;        // Loại dịch vụ chat cá nhân
+  displayName: string;             // Tên gợi nhớ (VD: "Zalo Cá nhân", "KakaoTalk Hàn")
   workspaceId: string;             // Thuộc nhóm Workspace nào
   partitionName: string;           // "persist:acc_9f8a7b..."
   frozenUserAgent: string;         // User-Agent cố định suốt vòng đời tài khoản
-  customUrl?: string;              // Dùng cho Naver Works domain riêng hoặc Custom Web
   unreadCount: number;             // Số tin nhắn chưa đọc hiện tại
   isMuted: boolean;                // Tắt âm thông báo của riêng tài khoản này
-  hibernationEnabled: boolean;     // Cho phép ngủ đông tiết kiệm RAM hay không
   keepAliveIntervalMinutes: number;// Chu kỳ ping giữ phiên (Mặc định: 15 phút)
+}
+
+export interface BossWatchRule {
+  id: string;
+  myMentionKeywords: string[];     // VD: ["@Son", "@Sơn", "손님", "Sơn ơi"]
+  bossSenderNames: string[];       // VD: ["김부장님", "Director Kim", "Sếp Hùng", "Tanaka"]
+  targetLanguage: string;          // Ngôn ngữ dịch đích (Mặc định: "vi")
+  autoCreateTodo: boolean;         // Tự động thêm vào To-Do List khi phát hiện giao việc
+  autoCreateEvent: boolean;        // Tự động đặt lịch khi phát hiện thời gian họp/hẹn
+}
+
+export interface TodoItem {
+  id: string;
+  title: string;                   // Tiêu đề công việc đã dịch sang tiếng Việt
+  originalMessage: string;         // Tin nhắn gốc của Sếp (Hàn/Nhật/Anh...)
+  translatedMessage: string;       // Bản dịch đầy đủ
+  sourceAccountId: string;         // Thuộc tài khoản chat nào (để click nhảy tới ngay)
+  sourcePlatform: ServiceType;     // 'kakaotalk-personal' | 'zalo' | 'naver-works' | 'line-personal'...
+  chatRoomName: string;            // Tên nhóm chat
+  senderName: string;              // Tên Sếp giao việc
+  priority: 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW';
+  dueAt?: string;                  // ISO Timestamp hạn chót (Deadline)
+  completed: boolean;
+  createdAt: string;
+}
+
+export interface ScheduleEvent {
+  id: string;
+  title: string;                   // Tên sự kiện / Cuộc họp
+  startTime: string;               // Thời gian bắt đầu (ISO 8601)
+  endTime?: string;                // Thời gian kết thúc
+  reminderMinutesBefore: number;   // Nhắc trước X phút (VD: 15 phút)
+  sourceTodoId?: string;           // Liên kết với đầu việc gốc
+  sourceAccountId: string;         // Nhảy về nhóm chat gốc
+  syncedToExternalCalendar: boolean;
 }
 ```
 
