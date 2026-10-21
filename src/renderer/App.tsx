@@ -204,6 +204,9 @@ export default function App() {
         <span className="text-[13px] font-bold tracking-wide text-shell-accent">
           MultiWork
         </span>
+        <span className="app-no-drag rounded bg-shell-panel2 px-1.5 py-0.5 text-[10px] font-semibold text-shell-dim">
+          v0.1.1 · bản vá Kakao/WeChat 22/10
+        </span>
         {active && (
           <span className="flex items-center gap-2 text-[13px] text-shell-dim">
             <span
