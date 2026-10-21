@@ -43,3 +43,16 @@ File này là **Bảng điều phối trung tâm (Single Source of Truth)** trê
   5. Cơ chế bóc tách thời gian (`extractScheduleAndDeadline`) và chuông nhắc hẹn ngầm (`SchedulerAlarm`) hoạt động chính xác với các mẫu câu tiếng Hàn, Nhật, Anh, Việt.
   6. Cơ chế điều phối cửa sổ KakaoTalk tự động bám dính khi di chuyển/thay đổi kích thước và tự ẩn khi đổi tab mang lại trải nghiệm 1 cửa sổ liền mạch.
 - **Dự án MultiWork chính thức hoàn thành và sẵn sàng sử dụng!**
+
+---
+
+## 4. Bổ sung sau bàn giao — Module WeChat Native Dock (21/10, yêu cầu trực tiếp từ người dùng)
+
+> Ghi chú từ **Muse.ai**: Sau REV-03, người dùng phản hồi tài khoản WeChat của họ bị Tencent khóa Web WeChat ("Dịch vụ này hiện không khả dụng với tài khoản của bạn") và yêu cầu xử lý dứt điểm. Muse.ai đã triển khai module ghép cửa sổ WeChat Desktop theo đúng mẫu MUSE-05/MUSE-08 của KakaoTalk:
+
+- **`src/main/native-dock/wechat-docker.ts`** (mới): detect WeChat Desktop (đường dẫn cố định gồm cả bản 4.x `Tencent\Weixin\Weixin.exe` + quét registry Uninstall tương tự bản vá KakaoTalk), launch, dock cửa sổ theo window class `WeChatMainWndForPC` (dự phòng theo tiêu đề `WeChat`/`微信`), minimize/undock — PowerShell P/Invoke, không native addon.
+- **Catalog**: `wechat` chuyển `kind: 'web'` → `'native'`; trang hướng dẫn trong khung chat có thêm đường lui mở Web WeChat cho tài khoản chưa bị khóa.
+- **ViewManager**: trạng thái `wechatDocked` + auto-follow khi move/resize + auto-hide khi chuyển tab/modal (cùng cơ chế MUSE-08).
+- **IPC/Preload/Renderer**: kênh `wechat:get-status|launch|dock|undock`, bridge tương ứng, thanh trên cùng hiện trạng thái cài đặt + 3 nút Mở WeChat / Ghép cửa sổ / Thả cửa sổ khi tài khoản WeChat đang mở.
+- Kiểm chứng: `npm run typecheck` + `npm run build` sạch; `out/preload` vẫn đúng 2 file, require duy nhất `electron`; chạy thử thật — tài khoản WeChat hiện trang hướng dẫn native + đủ 3 nút điều phối.
+- Người dùng cũng hỏi về KakaoTalk "ở REV-02 không chạy được": nguyên nhân là máy người dùng chưa cài KakaoTalk Desktop (app báo đúng "chưa cài") và bản REV-02 chưa có bản vá quét registry; cả hai đã rõ ở các bản sau.
