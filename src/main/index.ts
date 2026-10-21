@@ -65,9 +65,22 @@ async function createWindow(): Promise<void> {
 
   // AssistantService persists every directive/todo/event (REV-01 [HIGH-04])
   // and broadcasts new items to the shell.
-  const assistant = new AssistantService(store, (payload) => {
-    shellView?.webContents.send(IPC_CHANNELS.ASSISTANT_NEW_DIRECTIVE, payload)
-  })
+  let assistant: AssistantService
+  assistant = new AssistantService(
+    store,
+    (payload) => {
+      shellView?.webContents.send(IPC_CHANNELS.ASSISTANT_NEW_DIRECTIVE, payload)
+    },
+    {
+      targetLanguage: () => store.data.bossRule.targetLanguage,
+      pushState: () => {
+        shellView?.webContents.send(
+          IPC_CHANNELS.ASSISTANT_STATE_UPDATED,
+          assistant.getState()
+        )
+      }
+    }
+  )
   // Sprint 2 (MUSE-04): chat-view context-menu selections land here.
   viewManager.onSelectionAction = (account, text, kind) => {
     assistant.ingestSelection(account, text, kind)

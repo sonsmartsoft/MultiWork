@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type {
   AddAccountPayload,
+  AISettingsUpdate,
+  AssistantStatePayload,
   BossWatchRule,
   MultiWorkAPI,
   NewDirectivePayload,
@@ -40,12 +42,16 @@ const CH = {
   ASSISTANT_GET_STATE: 'assistant:get-state',
   ASSISTANT_SAVE_TODOS: 'assistant:save-todos',
   ASSISTANT_SAVE_EVENTS: 'assistant:save-events',
+  ASSISTANT_STATE_UPDATED: 'assistant:state-updated',
   LINE_GET_STATUS: 'line:get-status',
   LINE_PICK_EXTENSION_DIR: 'line:pick-extension-dir',
   KAKAO_GET_STATUS: 'kakao:get-status',
   KAKAO_LAUNCH: 'kakao:launch',
   KAKAO_DOCK: 'kakao:dock',
-  KAKAO_UNDOCK: 'kakao:undock'
+  KAKAO_UNDOCK: 'kakao:undock',
+  AI_GET_SETTINGS: 'ai:get-settings',
+  AI_SET_SETTINGS: 'ai:set-settings',
+  AI_TEST_CONNECTION: 'ai:test-connection'
 } as const
 
 const api: MultiWorkAPI = {
@@ -76,6 +82,10 @@ const api: MultiWorkAPI = {
   launchKakao: () => ipcRenderer.invoke(CH.KAKAO_LAUNCH),
   dockKakao: () => ipcRenderer.invoke(CH.KAKAO_DOCK),
   undockKakao: () => ipcRenderer.invoke(CH.KAKAO_UNDOCK),
+  getAISettings: () => ipcRenderer.invoke(CH.AI_GET_SETTINGS),
+  setAISettings: (update: AISettingsUpdate) =>
+    ipcRenderer.invoke(CH.AI_SET_SETTINGS, update),
+  testAIConnection: () => ipcRenderer.invoke(CH.AI_TEST_CONNECTION),
 
   onUnreadUpdated: (callback: (payload: UnreadUpdatedPayload) => void) => {
     const listener = (_event: IpcRendererEvent, payload: UnreadUpdatedPayload) =>
@@ -92,6 +102,19 @@ const api: MultiWorkAPI = {
     ipcRenderer.on(CH.ASSISTANT_NEW_DIRECTIVE, listener)
     return () => {
       ipcRenderer.removeListener(CH.ASSISTANT_NEW_DIRECTIVE, listener)
+    }
+  },
+
+  onAssistantStateUpdated: (
+    callback: (payload: AssistantStatePayload) => void
+  ) => {
+    const listener = (
+      _event: IpcRendererEvent,
+      payload: AssistantStatePayload
+    ) => callback(payload)
+    ipcRenderer.on(CH.ASSISTANT_STATE_UPDATED, listener)
+    return () => {
+      ipcRenderer.removeListener(CH.ASSISTANT_STATE_UPDATED, listener)
     }
   }
 }

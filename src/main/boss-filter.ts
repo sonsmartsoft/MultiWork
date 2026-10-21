@@ -11,7 +11,7 @@ import {
 /**
  * Sprint-1 Boss & @Mention filter (Main Process side).
  *
- * The real AI translation / intent extraction arrives in Sprint 3
+ * Translation / intent extraction is applied asynchronously by AssistantService.enrich() when the user configures an AI key; without a key these rule-based values stand.
  * (docs/AI_WORK_ASSISTANT.md). For Sprint 1 this deterministic filter decides
  * whether a captured notification is a "directive" (boss message or a
  * @mention of the user) and builds the `assistant:new-directive` payload.
@@ -77,7 +77,7 @@ export function evaluateNotification(
     platform: account.serviceType,
     title: payload.title,
     body: payload.body,
-    translatedBody: payload.body, // Sprint 3: replaced by the AI translation.
+    translatedBody: payload.body, // Pre-AI value; AssistantService.enrich() replaces it when AI is configured.
     timestamp: new Date(payload.timestamp || Date.now()).toISOString(),
     matchedBy,
     matchedKeyword: mentionKeyword ?? bossName
@@ -92,7 +92,7 @@ export function evaluateNotification(
       id: randomUUID(),
       title: firstLine.slice(0, 120),
       originalMessage: payload.body,
-      translatedMessage: payload.body, // Sprint 3: AI translation.
+      translatedMessage: payload.body, // Pre-AI value; enrich() replaces it when AI is configured.
       sourceAccountId: account.id,
       sourcePlatform: account.serviceType,
       chatRoomName: payload.title,

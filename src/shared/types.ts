@@ -221,6 +221,41 @@ export interface BossDirective {
 }
 
 // ---------------------------------------------------------------------------
+// AI engine (translation + smart task extraction)
+// ---------------------------------------------------------------------------
+
+/** AI settings as the renderer may see them — never contains the raw key. */
+export interface AISettingsView {
+  provider: 'gemini' | 'off'
+  model: string
+  autoTranslate: boolean
+  smartExtract: boolean
+  hasKey: boolean
+}
+
+export interface AISettingsUpdate {
+  provider?: 'gemini' | 'off'
+  model?: string
+  autoTranslate?: boolean
+  smartExtract?: boolean
+  /** undefined = keep the stored key · '' = clear it · other = replace it. */
+  apiKey?: string
+}
+
+export interface AITestResult {
+  ok: boolean
+  message: string
+}
+
+/** Structured task info extracted from a directive by the AI engine. */
+export interface AIExtraction {
+  hasTask: boolean
+  title?: string
+  dueAt?: string // ISO timestamp
+  priority?: TodoItem['priority']
+}
+
+// ---------------------------------------------------------------------------
 // IPC contract (docs/SPRINT_1_SPEC_FOR_MUSE.md §2) — names are FIXED.
 // Channels marked [extension] are additions by the Lead Developer, required to
 // satisfy Acceptance Criteria #2 (modal must not be covered by the chat view)
@@ -249,6 +284,9 @@ export const IPC_CHANNELS = {
   ASSISTANT_GET_STATE: 'assistant:get-state',
   ASSISTANT_SAVE_TODOS: 'assistant:save-todos',
   ASSISTANT_SAVE_EVENTS: 'assistant:save-events',
+  // [extension] Full assistant-state push after background AI enrichment
+  // (translation / smart extraction) mutated a directive or todo.
+  ASSISTANT_STATE_UPDATED: 'assistant:state-updated',
   // [extension] Sprint 2 (MUSE-04): LINE Chrome-extension integration.
   LINE_GET_STATUS: 'line:get-status',
   LINE_PICK_EXTENSION_DIR: 'line:pick-extension-dir',
@@ -256,7 +294,12 @@ export const IPC_CHANNELS = {
   KAKAO_GET_STATUS: 'kakao:get-status',
   KAKAO_LAUNCH: 'kakao:launch',
   KAKAO_DOCK: 'kakao:dock',
-  KAKAO_UNDOCK: 'kakao:undock'
+  KAKAO_UNDOCK: 'kakao:undock',
+  // [extension] AI engine settings + connection test. The API key is held
+  // ONLY by the Main process (encrypted at rest); it never crosses IPC.
+  AI_GET_SETTINGS: 'ai:get-settings',
+  AI_SET_SETTINGS: 'ai:set-settings',
+  AI_TEST_CONNECTION: 'ai:test-connection'
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -389,4 +432,12 @@ export interface MultiWorkAPI {
   onUnreadUpdated(callback: (payload: UnreadUpdatedPayload) => void): () => void
   /** Subscribe to new boss directives. Returns an unsubscribe function. */
   onNewDirective(callback: (payload: NewDirectivePayload) => void): () => void
+  /** AI engine settings (the API key itself never crosses this bridge). */
+  getAISettings(): Promise<AISettingsView>
+  setAISettings(update: AISettingsUpdate): Promise<AISettingsView>
+  testAIConnection(): Promise<AITestResult>
+  /** Subscribe to full-state refreshes after background AI enrichment. */
+  onAssistantStateUpdated(
+    callback: (payload: AssistantStatePayload) => void
+  ): () => void
 }

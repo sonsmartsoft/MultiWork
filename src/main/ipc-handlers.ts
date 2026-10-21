@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import {
   AccountInstance,
   AddAccountPayload,
+  AISettingsUpdate,
   BossWatchRule,
   IPC_CHANNELS,
   IncomingNotificationPayload,
@@ -16,6 +17,7 @@ import {
   TodoItem,
   UnreadUpdatedPayload
 } from '../shared/types'
+import { aiService } from './ai-service'
 import { AssistantService } from './assistant-service'
 import { evaluateNotification } from './boss-filter'
 import { ExtensionLoader } from './extension-loader'
@@ -161,6 +163,26 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     (_event, events: ScheduleEvent[]) => {
       assistant.saveEvents(Array.isArray(events) ? events : [])
     }
+  )
+
+  // -- AI engine settings ---------------------------------------------------
+  // The API key is accepted here only to be handed to AIService, which
+  // encrypts it with safeStorage; it is never returned to the renderer.
+
+  ipcMain.handle(IPC_CHANNELS.AI_GET_SETTINGS, () => aiService.getView())
+
+  ipcMain.handle(
+    IPC_CHANNELS.AI_SET_SETTINGS,
+    (_event, update: AISettingsUpdate) => {
+      const safe: AISettingsUpdate =
+        update && typeof update === 'object' ? update : {}
+      // `apiKey` may legitimately be '' (clear); other fields pass through.
+      return aiService.update(safe)
+    }
+  )
+
+  ipcMain.handle(IPC_CHANNELS.AI_TEST_CONNECTION, () =>
+    aiService.testConnection()
   )
 
   // -- LINE extension (Sprint 2, MUSE-04) --------------------------------

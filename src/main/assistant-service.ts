@@ -7,6 +7,7 @@ import {
   ScheduleEvent,
   TodoItem
 } from '../shared/types'
+import { aiService } from './ai-service'
 import type { FilterResult } from './boss-filter'
 import { JsonStore } from './store'
 
@@ -26,10 +27,21 @@ export type SelectionActionKind = 'todo' | 'directive'
  * immediately, and renderer-side mutations are written back through
  * `saveTodos` / `saveEvents`, so nothing is lost across restarts.
  */
+export interface AssistantHooks {
+  /** Current translation target language from the boss watch rule. */
+  targetLanguage: () => string
+  /** Push the full assistant state to the renderer (after AI enrichment). */
+  pushState: () => void
+}
+
 export class AssistantService {
   constructor(
     private readonly store: JsonStore,
-    private readonly notifyRenderer: (payload: NewDirectivePayload) => void
+    private readonly notifyRenderer: (payload: NewDirectivePayload) => void,
+    private readonly hooks: AssistantHooks = {
+      targetLanguage: () => 'vi',
+      pushState: () => undefined
+    }
   ) {}
 
   getState(): AssistantStatePayload {
@@ -75,7 +87,7 @@ export class AssistantService {
       platform: account.serviceType,
       title: account.displayName,
       body: text,
-      translatedBody: text, // Sprint 3: replaced by the AI translation.
+      translatedBody: text, // Pre-AI value; enrich() replaces it when AI is configured.
       timestamp: now,
       matchedBy: 'boss',
       matchedKeyword:
@@ -89,7 +101,7 @@ export class AssistantService {
         id: randomUUID(),
         title: firstLine.slice(0, 120),
         originalMessage: text,
-        translatedMessage: text, // Sprint 3: AI translation.
+        translatedMessage: text, // Pre-AI value; enrich() replaces it when AI is configured.
         sourceAccountId: account.id,
         sourcePlatform: account.serviceType,
         chatRoomName: account.displayName,
@@ -118,5 +130,65 @@ export class AssistantService {
     }
     this.store.save()
     this.notifyRenderer(payload)
+    void this.enrich(payload)
+  }
+
+  /**
+   * Background AI enrichment: when the user has configured an API key,
+   * translate the directive and extract a smart title / deadline /
+   * priority for its To-Do, then persist and push the refreshed state.
+   * Fully best-effort — with no key (or on any AI failure) the rule-based
+   * Sprint 1/2 values simply stay as they are.
+   */
+  private async enrich(payload: NewDirectivePayload): Promise<void> {
+    try {
+      const view = aiService.getView()
+      if (!aiService.isReady()) return
+      if (!view.autoTranslate && !view.smartExtract) return
+      const { directives, todos } = this.store.data
+      const directive = directives.find((d) => d.id === payload.directive.id)
+      if (!directive) return
+      const todo = payload.todo
+        ? todos.find((t) => t.id === payload.todo?.id)
+        : undefined
+      let changed = false
+
+      if (view.autoTranslate) {
+        const translated = await aiService.translate(
+          directive.body,
+          this.hooks.targetLanguage()
+        )
+        if (translated && translated !== directive.body) {
+          directive.translatedBody = translated
+          if (todo) todo.translatedMessage = translated
+          changed = true
+        }
+      }
+
+      if (view.smartExtract && todo) {
+        const ex = await aiService.extractTask(directive.body)
+        if (ex?.hasTask) {
+          if (ex.title) {
+            todo.title = ex.title.slice(0, 120)
+            changed = true
+          }
+          if (ex.dueAt && !Number.isNaN(Date.parse(ex.dueAt))) {
+            todo.dueAt = new Date(ex.dueAt).toISOString()
+            changed = true
+          }
+          if (ex.priority) {
+            todo.priority = ex.priority
+            changed = true
+          }
+        }
+      }
+
+      if (changed) {
+        this.store.save()
+        this.hooks.pushState()
+      }
+    } catch {
+      // AI enrichment must never break directive capture.
+    }
   }
 }
