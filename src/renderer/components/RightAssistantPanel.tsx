@@ -17,7 +17,11 @@ const TABS: { id: TabId; label: string }[] = [
  * Right column (360px): the AI Work Co-Pilot panel with 3 tabs —
  * Boss directives, To-Do board and Schedule (docs/PLAN.md §4.1).
  */
-export default function RightAssistantPanel() {
+export default function RightAssistantPanel({
+  onOpenWatchlist
+}: {
+  onOpenWatchlist: () => void
+}) {
   const [tab, setTab] = useState<TabId>('directives')
   const directiveCount = useAssistantStore((s) => s.directives.length)
   const openTodoCount = useAssistantStore(
@@ -62,6 +66,20 @@ export default function RightAssistantPanel() {
           ▶
         </button>
       </header>
+
+      {/* AI capture setup must be discoverable: this button opens the
+          Boss & @mention watchlist (keywords for the user's own tags and
+          the boss names that auto-create directives / To-Dos). */}
+      <button
+        onClick={onOpenWatchlist}
+        className="mx-2 mt-2 rounded-lg border border-shell-accentDim bg-shell-panel2 px-3 py-2 text-left text-[12.5px] font-medium text-shell-text hover:ring-1 hover:ring-shell-accent"
+      >
+        🎯 Cài đặt bắt tin AI — Sếp &amp; @mention
+        <span className="block text-[11px] font-normal text-shell-dim">
+          Khai tên Sếp + từ khóa tag của bạn để tin nhắn tự vào Chỉ thị / Việc
+          cần làm
+        </span>
+      </button>
 
       <div className="min-h-0 flex-1">
         {tab === 'directives' && <BossDirectiveFeed />}

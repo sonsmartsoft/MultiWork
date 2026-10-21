@@ -223,7 +223,11 @@ export default function App() {
           )}
         </main>
 
-        {panelOpen && <RightAssistantPanel />}
+        {panelOpen && (
+          <RightAssistantPanel
+            onOpenWatchlist={() => setWatchlistOpen(true)}
+          />
+        )}
       </div>
 
       {addOpen && <AddServiceModal onClose={() => setAddOpen(false)} />}
