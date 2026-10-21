@@ -183,8 +183,27 @@ class AIService {
     }
   }
 
-  /** Translate a chat message into the boss rule's target language. */
+  /**
+   * Translate a chat message into the boss rule's target language
+   * (MUSE-06 dual engine): the LLM engine when a Gemini key is configured,
+   * otherwise — or on any LLM failure — the zero-config free Google
+   * Translate engine, so translation NEVER hard-fails (MUSE-06.B).
+   */
   async translate(text: string, targetLanguage: string): Promise<string> {
+    if (this.isReady()) {
+      try {
+        return await this.translateWithLLM(text, targetLanguage)
+      } catch {
+        // Fall through to the free engine below.
+      }
+    }
+    return this.translateFree(text, targetLanguage)
+  }
+
+  private async translateWithLLM(
+    text: string,
+    targetLanguage: string
+  ): Promise<string> {
     const lang =
       LANGUAGE_NAMES[targetLanguage] ?? targetLanguage ?? 'Vietnamese'
     return this.generate(
@@ -196,6 +215,32 @@ class AIService {
         text
       ].join('\n')
     )
+  }
+
+  /**
+   * Zero-config free translation via the public Google Translate endpoint
+   * (MUSE-06.B). No key, no billing — used whenever the LLM engine is not
+   * configured, and as its fallback when a call fails.
+   */
+  async translateFree(text: string, targetLanguage: string): Promise<string> {
+    const tl = encodeURIComponent(targetLanguage || 'vi')
+    const q = encodeURIComponent(text.slice(0, 1800))
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${tl}&dt=t&q=${q}`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (MultiWork)' }
+    })
+    if (!res.ok) throw new Error(`Free translate HTTP ${res.status}`)
+    const data = (await res.json()) as unknown
+    const segments = (data as [unknown[]] | null)?.[0] as
+      | [string][]
+      | undefined
+    if (!Array.isArray(segments)) throw new Error('Free translate: bad reply')
+    const out = segments
+      .map((seg) => (Array.isArray(seg) ? String(seg[0] ?? '') : ''))
+      .join('')
+      .trim()
+    if (!out) throw new Error('Free translate: empty reply')
+    return out
   }
 
   /**
@@ -234,6 +279,141 @@ class AIService {
       return null
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// MUSE-06.B — deterministic multilingual schedule / deadline extraction.
+// Pure regex engine over Vietnamese / Korean / Japanese / English time
+// expressions (docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md §MUSE-06). It runs
+// with or without an LLM key; the LLM extraction (MUSE-06.A) refines its
+// results afterwards when configured.
+// ---------------------------------------------------------------------------
+
+export interface ScheduleExtraction {
+  /** Any time-of-day expression was found. */
+  hasTime: boolean
+  /** Meeting / appointment keywords were found. */
+  isMeeting: boolean
+  /** Resolved local date+time when a time-of-day was found. */
+  startAt?: Date
+  /** Resolved calendar date when only a date was found (no time). */
+  dateOnly?: Date
+}
+
+const MEETING_WORDS = [
+  'họp',
+  'meeting',
+  'call',
+  '회의',
+  '미팅',
+  '화상회의',
+  '打ち合わせ',
+  '会議',
+  'lịch',
+  'schedule',
+  'event',
+  'hẹn',
+  'appointment'
+]
+
+function startOfDay(d: Date): Date {
+  const out = new Date(d)
+  out.setHours(0, 0, 0, 0)
+  return out
+}
+
+export function extractScheduleAndDeadline(
+  text: string,
+  now = new Date()
+): ScheduleExtraction {
+  const lower = text.toLowerCase()
+  const isMeeting = MEETING_WORDS.some((w) => lower.includes(w))
+
+  // --- Calendar date -------------------------------------------------------
+  let date: Date | null = null
+  const ymd = /(\d{4})-(\d{1,2})-(\d{1,2})/.exec(text)
+  const kor = /(\d{1,2})월\s*(\d{1,2})일/.exec(text)
+  const jpn = /(\d{1,2})月\s*(\d{1,2})日/.exec(text)
+  const dmy = /(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/.exec(text)
+  if (ymd) {
+    date = new Date(+ymd[1], +ymd[2] - 1, +ymd[3])
+  } else if (kor) {
+    date = new Date(now.getFullYear(), +kor[1] - 1, +kor[2])
+  } else if (jpn) {
+    date = new Date(now.getFullYear(), +jpn[1] - 1, +jpn[2])
+  } else if (dmy) {
+    const year = dmy[3]
+      ? dmy[3].length === 2
+        ? 2000 + +dmy[3]
+        : +dmy[3]
+      : now.getFullYear()
+    date = new Date(year, +dmy[2] - 1, +dmy[1])
+  }
+
+  // Relative day offsets apply only when no explicit date was given.
+  let offset: number | null = null
+  if (!date) {
+    if (/(ngày kia|모레|明後日|day after tomorrow)/.test(lower)) offset = 2
+    else if (
+      /(ngày mai|sáng mai|chiều mai|tối mai|내일|明日|tomorrow)/.test(lower) ||
+      /(^|\s)mai(\s|$)/.test(lower) // bare "mai" (e.g. "mai 10h họp")
+    )
+      offset = 1
+    else if (/(hôm nay|오늘|今日|today)/.test(lower)) offset = 0
+  }
+
+  // --- Time of day ---------------------------------------------------------
+  let hour: number | null = null
+  let minute = 0
+  const ampm = /(\d{1,2})\s*(am|pm)/i.exec(text)
+  const hhmm = /(\d{1,2}):(\d{2})/.exec(text)
+  const hmm = /(\d{1,2})h(\d{2})/.exec(text)
+  const unit =
+    /(\d{1,2})\s*(?:giờ|時|시)(?:\s*(\d{1,2})\s*(?:phút|분|分))?/.exec(text) ??
+    /(\d{1,2})\s*h(?![\d:])/.exec(text)
+  if (ampm) {
+    hour = +ampm[1] % 12
+    if (/pm/i.test(ampm[2])) hour += 12
+  } else if (hhmm) {
+    hour = +hhmm[1]
+    minute = +hhmm[2]
+  } else if (hmm) {
+    hour = +hmm[1]
+    minute = +hmm[2]
+  } else if (unit) {
+    hour = +unit[1]
+    minute = unit[2] ? +unit[2] : 0
+  }
+  // Session markers (sáng/chiều/tối · 오전/오후 · 午前/午後) shift bare hours.
+  if (hour !== null && !ampm) {
+    if (/(chiều|tối|오후|午後)/.test(lower) && hour < 12) hour += 12
+    else if (/(sáng|오전|午前)/.test(lower) && hour === 12) hour = 0
+  }
+
+  // --- Combine -------------------------------------------------------------
+  let startAt: Date | undefined
+  if (hour !== null) {
+    const base = date ? new Date(date) : startOfDay(now)
+    if (!date && offset) base.setDate(base.getDate() + offset)
+    base.setHours(hour, minute, 0, 0)
+    // "3pm meeting" said at 4pm with no day anchor almost surely means
+    // tomorrow — roll forward when the implied time is already past.
+    if (!date && offset === null && base.getTime() < now.getTime() - 30 * 60_000) {
+      base.setDate(base.getDate() + 1)
+    }
+    startAt = base
+  }
+
+  let dateOnly: Date | undefined
+  if (!startAt) {
+    if (date) dateOnly = startOfDay(date)
+    else if (offset !== null) {
+      dateOnly = startOfDay(now)
+      dateOnly.setDate(dateOnly.getDate() + offset)
+    }
+  }
+
+  return { hasTime: hour !== null, isMeeting, startAt, dateOnly }
 }
 
 export const aiService = new AIService()

@@ -3,11 +3,13 @@ import {
   AccountInstance,
   AssistantStatePayload,
   BossDirective,
+  BossWatchRule,
+  DEFAULT_BOSS_RULE,
   NewDirectivePayload,
   ScheduleEvent,
   TodoItem
 } from '../shared/types'
-import { aiService } from './ai-service'
+import { aiService, extractScheduleAndDeadline } from './ai-service'
 import type { FilterResult } from './boss-filter'
 import { JsonStore } from './store'
 
@@ -30,6 +32,8 @@ export type SelectionActionKind = 'todo' | 'directive'
 export interface AssistantHooks {
   /** Current translation target language from the boss watch rule. */
   targetLanguage: () => string
+  /** The full boss watch rule (autoCreateEvent gates event extraction). */
+  getRule: () => BossWatchRule
   /** Push the full assistant state to the renderer (after AI enrichment). */
   pushState: () => void
 }
@@ -40,6 +44,7 @@ export class AssistantService {
     private readonly notifyRenderer: (payload: NewDirectivePayload) => void,
     private readonly hooks: AssistantHooks = {
       targetLanguage: () => 'vi',
+      getRule: () => DEFAULT_BOSS_RULE,
       pushState: () => undefined
     }
   ) {}
@@ -134,50 +139,110 @@ export class AssistantService {
   }
 
   /**
-   * Background AI enrichment: when the user has configured an API key,
-   * translate the directive and extract a smart title / deadline /
-   * priority for its To-Do, then persist and push the refreshed state.
-   * Fully best-effort — with no key (or on any AI failure) the rule-based
-   * Sprint 1/2 values simply stay as they are.
+   * Background enrichment pipeline (Sprint 3, MUSE-06):
+   *   1. Translate — LLM engine when a key is configured, otherwise the
+   *      free zero-config engine (MUSE-06.B); never hard-fails.
+   *   2. Deterministic multilingual schedule extraction (MUSE-06.B):
+   *      fills the To-Do deadline and auto-creates a ScheduleEvent for
+   *      meeting messages when the boss rule allows it.
+   *   3. LLM smart extraction (MUSE-06.A) refines title / priority /
+   *      deadline when a Gemini key is configured.
+   * Fully best-effort: on any failure the rule-based Sprint 1/2 values
+   * simply stay as they are.
    */
   private async enrich(payload: NewDirectivePayload): Promise<void> {
     try {
-      const view = aiService.getView()
-      if (!aiService.isReady()) return
-      if (!view.autoTranslate && !view.smartExtract) return
-      const { directives, todos } = this.store.data
+      const { directives, todos, events } = this.store.data
       const directive = directives.find((d) => d.id === payload.directive.id)
       if (!directive) return
       const todo = payload.todo
         ? todos.find((t) => t.id === payload.todo?.id)
         : undefined
+      const rule = this.hooks.getRule()
+      const view = aiService.getView()
       let changed = false
 
+      // 1) Translation (dual engine).
+      let translated: string | undefined
       if (view.autoTranslate) {
-        const translated = await aiService.translate(
-          directive.body,
-          this.hooks.targetLanguage()
-        )
+        translated = await aiService
+          .translate(directive.body, this.hooks.targetLanguage())
+          .catch(() => undefined)
         if (translated && translated !== directive.body) {
           directive.translatedBody = translated
-          if (todo) todo.translatedMessage = translated
+          if (todo) {
+            todo.translatedMessage = translated
+            // Spec MUSE-06: the To-Do title is written in the TRANSLATED
+            // language; the LLM pass below may refine it further.
+            const firstLine = translated
+              .split('\n')
+              .find((l) => l.trim().length > 0)
+              ?.trim()
+            if (firstLine) todo.title = firstLine.slice(0, 120)
+          }
           changed = true
         }
       }
 
-      if (view.smartExtract && todo) {
-        const ex = await aiService.extractTask(directive.body)
-        if (ex?.hasTask) {
-          if (ex.title) {
-            todo.title = ex.title.slice(0, 120)
+      // 2) Rule-based schedule / deadline extraction.
+      const ex = extractScheduleAndDeadline(directive.body)
+      if (todo && !todo.dueAt) {
+        let due: Date | undefined = ex.startAt
+        if (!due && ex.dateOnly) {
+          due = new Date(ex.dateOnly)
+          due.setHours(17, 0, 0, 0)
+        }
+        if (due) {
+          todo.dueAt = due.toISOString()
+          changed = true
+        }
+      }
+      if (rule.autoCreateEvent && ex.isMeeting && ex.startAt) {
+        const startMs = ex.startAt.getTime()
+        const duplicate = events.some(
+          (e) =>
+            e.sourceAccountId === directive.accountId &&
+            Math.abs(Date.parse(e.startTime) - startMs) < 60_000
+        )
+        if (!duplicate) {
+          const title =
+            (translated
+              ? translated.split('\n').find((l) => l.trim().length > 0)?.trim()
+              : undefined) ??
+            todo?.title ??
+            directive.body.split('\n')[0]?.trim() ??
+            'Cuộc họp'
+          events.unshift({
+            id: randomUUID(),
+            title: title.slice(0, 120),
+            startTime: ex.startAt.toISOString(),
+            endTime: new Date(startMs + 60 * 60_000).toISOString(),
+            reminderMinutesBefore: 15,
+            sourceTodoId: todo?.id,
+            sourceAccountId: directive.accountId,
+            syncedToExternalCalendar: false
+          })
+          if (events.length > MAX_EVENTS) events.length = MAX_EVENTS
+          changed = true
+        }
+      }
+
+      // 3) LLM smart extraction refines the To-Do.
+      if (aiService.isReady() && view.smartExtract && todo) {
+        const smart = await aiService
+          .extractTask(directive.body)
+          .catch(() => null)
+        if (smart?.hasTask) {
+          if (smart.title) {
+            todo.title = smart.title.slice(0, 120)
             changed = true
           }
-          if (ex.dueAt && !Number.isNaN(Date.parse(ex.dueAt))) {
-            todo.dueAt = new Date(ex.dueAt).toISOString()
+          if (smart.dueAt && !Number.isNaN(Date.parse(smart.dueAt))) {
+            todo.dueAt = new Date(smart.dueAt).toISOString()
             changed = true
           }
-          if (ex.priority) {
-            todo.priority = ex.priority
+          if (smart.priority) {
+            todo.priority = smart.priority
             changed = true
           }
         }
@@ -188,7 +253,7 @@ export class AssistantService {
         this.hooks.pushState()
       }
     } catch {
-      // AI enrichment must never break directive capture.
+      // Enrichment must never break directive capture.
     }
   }
 }
