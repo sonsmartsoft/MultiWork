@@ -10,7 +10,9 @@ import type { SelectionActionKind } from './assistant-service'
 import { ExtensionLoader } from './extension-loader'
 import {
   detectKakaoTalk,
-  kakaoGuidePage
+  dockKakaoTalk,
+  kakaoGuidePage,
+  minimizeKakaoTalk
 } from './native-dock/kakao-docker'
 import { SessionVault } from './session-vault'
 import { JsonStore } from './store'
@@ -68,13 +70,61 @@ export class ViewManager {
     | ((account: AccountInstance, text: string, kind: SelectionActionKind) => void)
     | null = null
 
+  /** Sprint 3 (MUSE-08): KakaoTalk window lifecycle sync state. */
+  private kakaoDocked = false
+  private kakaoSyncTimer: NodeJS.Timeout | null = null
+
   constructor(
     private readonly window: BaseWindow,
     private readonly vault: SessionVault,
     private readonly store: JsonStore,
     private readonly emitUnread: (payload: UnreadUpdatedPayload) => void,
     private readonly extensionLoader?: ExtensionLoader
-  ) {}
+  ) {
+    // Sprint 3 (MUSE-08): the docked KakaoTalk window follows the main
+    // window — re-dock (debounced) whenever it moves or resizes.
+    const onWindowGeometry = () => {
+      this.handleResize()
+      this.scheduleKakaoSync()
+    }
+    this.window.on('resize', onWindowGeometry)
+    this.window.on('move', onWindowGeometry)
+  }
+
+  /** Called by the Kakao IPC handlers after a successful dock / undock. */
+  setKakaoDocked(docked: boolean): void {
+    this.kakaoDocked = docked
+    this.syncKakaoVisibility()
+  }
+
+  private activeIsKakao(): boolean {
+    if (!this.activeAccountId) return false
+    const account = this.store.getAccount(this.activeAccountId)
+    return account?.serviceType === 'kakaotalk-personal'
+  }
+
+  private scheduleKakaoSync(): void {
+    if (!this.kakaoDocked) return
+    if (this.kakaoSyncTimer) clearTimeout(this.kakaoSyncTimer)
+    this.kakaoSyncTimer = setTimeout(() => {
+      this.kakaoSyncTimer = null
+      this.syncKakaoVisibility()
+    }, 120)
+  }
+
+  /**
+   * Sprint 3 (MUSE-08): keep the docked KakaoTalk window glued to the
+   * viewport while the KakaoTalk account is in front; minimize it away
+   * when another account (or a shell modal) takes the viewport.
+   */
+  private syncKakaoVisibility(): void {
+    if (!this.kakaoDocked) return
+    if (this.activeIsKakao() && this.layout.chatVisible) {
+      void dockKakaoTalk(this.viewportScreenBounds()).catch(() => undefined)
+    } else {
+      void minimizeKakaoTalk().catch(() => undefined)
+    }
+  }
 
   get activeId(): string | null {
     return this.activeAccountId
@@ -203,6 +253,7 @@ export class ViewManager {
     this.store.save()
     view.setBounds(this.viewportBounds())
     view.setVisible(this.layout.chatVisible)
+    this.scheduleKakaoSync()
   }
 
   /** Destroy a view and drop its bookkeeping (partition wipe is separate). */
@@ -214,6 +265,7 @@ export class ViewManager {
     view.webContents.close()
     this.views.delete(accountId)
     if (this.activeAccountId === accountId) this.activeAccountId = null
+    this.scheduleKakaoSync()
   }
 
   /** Merge new layout inputs and re-apply bounds/visibility to the active view. */
@@ -226,6 +278,7 @@ export class ViewManager {
       active.setBounds(this.viewportBounds())
       active.setVisible(this.layout.chatVisible)
     }
+    this.scheduleKakaoSync()
   }
 
   /** Re-apply bounds after the window itself was resized. */

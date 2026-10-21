@@ -115,7 +115,7 @@ export default function AISettingsModal({ onClose }: AISettingsModalProps) {
           className="mt-1 w-full rounded-lg border border-shell-border bg-shell-bg px-3 py-2 text-sm text-shell-text outline-none focus:border-shell-accentDim"
         >
           <option value="gemini">Google Gemini (dùng API key của bạn)</option>
-          <option value="off">Tắt AI — chỉ dùng chế độ quy tắc</option>
+          <option value="off">Không dùng LLM — chỉ dịch miễn phí + quy tắc</option>
         </select>
 
         {provider === 'gemini' && (

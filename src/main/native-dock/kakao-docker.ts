@@ -203,6 +203,29 @@ end tell
   }
 }
 
+/**
+ * Minimize/hide the KakaoTalk window (Sprint 3, MUSE-08 auto-hide): used
+ * when the user switches away from the KakaoTalk account or a shell modal
+ * covers the viewport, so the docked window never floats over other chats.
+ * Windows: ShowWindow(handle, 6) = SW_MINIMIZE. macOS: hide the process.
+ */
+export async function minimizeKakaoTalk(): Promise<void> {
+  try {
+    if (process.platform === 'win32') {
+      await runPowershell(
+        WIN32_PREAMBLE + '\n[MWWin32]::ShowWindow($h, 6) | Out-Null\nexit 0\n'
+      )
+    } else if (process.platform === 'darwin') {
+      await run('osascript', [
+        '-e',
+        'tell application "System Events" to set visible of process "KakaoTalk" to false'
+      ])
+    }
+  } catch {
+    // Best-effort: a missing KakaoTalk window must never break tab switching.
+  }
+}
+
 /** Release the KakaoTalk window from its docked state (restore). */
 export async function undockKakaoTalk(): Promise<DockResult> {
   try {
