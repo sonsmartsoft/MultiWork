@@ -20,7 +20,7 @@ import { AssistantService } from './assistant-service'
 import { evaluateNotification } from './boss-filter'
 import { ExtensionLoader } from './extension-loader'
 import {
-  detectKakaoTalk,
+  detectKakaoTalkDeep,
   dockKakaoTalk,
   launchKakaoTalk,
   undockKakaoTalk
@@ -182,7 +182,7 @@ export function registerIpcHandlers(deps: IpcDeps): void {
 
   // -- KakaoTalk native dock (Sprint 2, MUSE-05) --------------------------
 
-  ipcMain.handle(IPC_CHANNELS.KAKAO_GET_STATUS, () => detectKakaoTalk())
+  ipcMain.handle(IPC_CHANNELS.KAKAO_GET_STATUS, () => detectKakaoTalkDeep())
 
   ipcMain.handle(IPC_CHANNELS.KAKAO_LAUNCH, () => launchKakaoTalk())
 

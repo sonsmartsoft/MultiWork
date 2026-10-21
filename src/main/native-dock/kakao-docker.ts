@@ -37,8 +37,18 @@ function windowsCandidates(): string[] {
 
 const MAC_APP_PATH = '/Applications/KakaoTalk.app'
 
+/** Exe path found by the deep (registry) probe, reused by sync checks. */
+let cachedExePath: string | undefined
+
 export function detectKakaoTalk(): KakaoStatus {
   if (process.platform === 'win32') {
+    if (cachedExePath && fs.existsSync(cachedExePath)) {
+      return {
+        installed: true,
+        installPath: cachedExePath,
+        platform: process.platform
+      }
+    }
     const found = windowsCandidates().find((p) => fs.existsSync(p))
     return {
       installed: found !== undefined,
@@ -57,9 +67,56 @@ export function detectKakaoTalk(): KakaoStatus {
   return { installed: false, platform: process.platform }
 }
 
+const REGISTRY_PROBE = `
+$roots = @(
+  'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+  'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+  'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+)
+$app = Get-ItemProperty $roots -ErrorAction SilentlyContinue |
+  Where-Object { $_.DisplayName -like '*KakaoTalk*' } |
+  Select-Object -First 1
+if ($app) {
+  Write-Output $app.InstallLocation
+  Write-Output $app.DisplayIcon
+}
+`
+
+/**
+ * Deep detection: the fixed install paths can miss custom install
+ * locations, so on Windows also probe the Uninstall registry keys for
+ * KakaoTalk's InstallLocation / DisplayIcon and verify the exe exists.
+ */
+export async function detectKakaoTalkDeep(): Promise<KakaoStatus> {
+  const quick = detectKakaoTalk()
+  if (quick.installed || process.platform !== 'win32') return quick
+  try {
+    const out = await runPowershellCapture(REGISTRY_PROBE)
+    const lines = out
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+    const candidates: string[] = []
+    for (const line of lines) {
+      const cleaned = line.replace(/^"|"$/g, '').replace(/,\d+$/, '')
+      if (/\.exe$/i.test(cleaned)) candidates.push(cleaned)
+      candidates.push(path.join(cleaned, 'KakaoTalk.exe'))
+      candidates.push(path.join(cleaned, 'Kakao', 'KakaoTalk', 'KakaoTalk.exe'))
+    }
+    const found = candidates.find((p) => fs.existsSync(p))
+    if (found) {
+      cachedExePath = found
+      return { installed: true, installPath: found, platform: process.platform }
+    }
+  } catch {
+    // Registry probe is best-effort; the fixed-path result stands.
+  }
+  return quick
+}
+
 /** Launch the KakaoTalk desktop app (or focus it if already running). */
 export async function launchKakaoTalk(): Promise<DockResult> {
-  const status = detectKakaoTalk()
+  const status = await detectKakaoTalkDeep()
   if (!status.installed || !status.installPath) {
     return {
       ok: false,
@@ -184,6 +241,20 @@ function runPowershell(script: string): Promise<void> {
       (err) => {
         if (err) reject(err)
         else resolve()
+      }
+    )
+  })
+}
+
+function runPowershellCapture(script: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+      { timeout: 20000, encoding: 'utf8' },
+      (err, stdout) => {
+        if (err) reject(err)
+        else resolve(stdout ?? '')
       }
     )
   })
