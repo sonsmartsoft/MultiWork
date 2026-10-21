@@ -247,6 +247,12 @@ export interface AITestResult {
   message: string
 }
 
+/** Alarm raised by the SchedulerAlarm (MUSE-07) and shown in the shell. */
+export interface AlarmPayload {
+  title: string
+  body: string
+}
+
 /** Structured task info extracted from a directive by the AI engine. */
 export interface AIExtraction {
   hasTask: boolean
@@ -299,7 +305,11 @@ export const IPC_CHANNELS = {
   // ONLY by the Main process (encrypted at rest); it never crosses IPC.
   AI_GET_SETTINGS: 'ai:get-settings',
   AI_SET_SETTINGS: 'ai:set-settings',
-  AI_TEST_CONNECTION: 'ai:test-connection'
+  AI_TEST_CONNECTION: 'ai:test-connection',
+  // [extension] Sprint 3 (MUSE-07): scheduler alarm push to the renderer,
+  // and opening an external link (Google Calendar) in the system browser.
+  ASSISTANT_ALARM: 'assistant:alarm',
+  SHELL_OPEN_EXTERNAL: 'shell:open-external'
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -440,4 +450,8 @@ export interface MultiWorkAPI {
   onAssistantStateUpdated(
     callback: (payload: AssistantStatePayload) => void
   ): () => void
+  /** Subscribe to scheduler alarms (MUSE-07). Returns an unsubscribe fn. */
+  onAlarm(callback: (payload: AlarmPayload) => void): () => void
+  /** Open a Google Calendar template link in the system browser. */
+  openExternal(url: string): Promise<boolean>
 }

@@ -1,6 +1,7 @@
 import { app, BaseWindow, WebContentsView } from 'electron'
 import path from 'node:path'
 import { IPC_CHANNELS, LAYOUT } from '../shared/types'
+import { SchedulerAlarm } from './ai-assistant/scheduler-alarm'
 import { AssistantService } from './assistant-service'
 import { ExtensionLoader } from './extension-loader'
 import { registerIpcHandlers } from './ipc-handlers'
@@ -73,6 +74,7 @@ async function createWindow(): Promise<void> {
     },
     {
       targetLanguage: () => store.data.bossRule.targetLanguage,
+      getRule: () => store.data.bossRule,
       pushState: () => {
         shellView?.webContents.send(
           IPC_CHANNELS.ASSISTANT_STATE_UPDATED,
@@ -85,6 +87,13 @@ async function createWindow(): Promise<void> {
   viewManager.onSelectionAction = (account, text, kind) => {
     assistant.ingestSelection(account, text, kind)
   }
+
+  // Sprint 3 (MUSE-07): background reminder loop — OS notifications plus
+  // an in-shell alarm push for events and To-Do deadlines.
+  const schedulerAlarm = new SchedulerAlarm(store, (payload) => {
+    shellView?.webContents.send(IPC_CHANNELS.ASSISTANT_ALARM, payload)
+  })
+  schedulerAlarm.start()
 
   registerIpcHandlers({
     store,

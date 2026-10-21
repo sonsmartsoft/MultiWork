@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type {
   AddAccountPayload,
   AISettingsUpdate,
+  AlarmPayload,
   AssistantStatePayload,
   BossWatchRule,
   MultiWorkAPI,
@@ -51,7 +52,9 @@ const CH = {
   KAKAO_UNDOCK: 'kakao:undock',
   AI_GET_SETTINGS: 'ai:get-settings',
   AI_SET_SETTINGS: 'ai:set-settings',
-  AI_TEST_CONNECTION: 'ai:test-connection'
+  AI_TEST_CONNECTION: 'ai:test-connection',
+  ASSISTANT_ALARM: 'assistant:alarm',
+  SHELL_OPEN_EXTERNAL: 'shell:open-external'
 } as const
 
 const api: MultiWorkAPI = {
@@ -116,7 +119,19 @@ const api: MultiWorkAPI = {
     return () => {
       ipcRenderer.removeListener(CH.ASSISTANT_STATE_UPDATED, listener)
     }
-  }
+  },
+
+  onAlarm: (callback: (payload: AlarmPayload) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: AlarmPayload) =>
+      callback(payload)
+    ipcRenderer.on(CH.ASSISTANT_ALARM, listener)
+    return () => {
+      ipcRenderer.removeListener(CH.ASSISTANT_ALARM, listener)
+    }
+  },
+
+  openExternal: (url: string) =>
+    ipcRenderer.invoke(CH.SHELL_OPEN_EXTERNAL, url)
 }
 
 contextBridge.exposeInMainWorld('multiworkAPI', api)

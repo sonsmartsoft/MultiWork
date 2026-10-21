@@ -69,6 +69,8 @@ export default function RightAssistantPanel({
         </button>
       </header>
 
+      <AlarmBanner />
+
       {/* AI capture setup must be discoverable: this button opens the
           Boss & @mention watchlist (keywords for the user's own tags and
           the boss names that auto-create directives / To-Dos). */}
@@ -94,13 +96,33 @@ export default function RightAssistantPanel({
   )
 }
 
+/** Dismissible banner for the latest SchedulerAlarm (MUSE-07). */
+function AlarmBanner() {
+  const lastAlarm = useAssistantStore((s) => s.lastAlarm)
+  const clearAlarm = useAssistantStore((s) => s.clearAlarm)
+  if (!lastAlarm) return null
+  return (
+    <div className="mx-2 mt-2 flex items-start gap-2 rounded-lg bg-amber-400/15 px-3 py-2 text-[12.5px] text-amber-200">
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold">{lastAlarm.title}</div>
+        <div className="leading-snug">{lastAlarm.body}</div>
+      </div>
+      <button
+        onClick={clearAlarm}
+        title="Đóng nhắc việc"
+        className="rounded-md px-1.5 py-0.5 hover:bg-amber-400/20"
+      >
+        ✕
+      </button>
+    </div>
+  )
+}
+
 /** AI engine settings entry, with a live configured/not-configured hint. */
 function AISettingsButton({ onOpen }: { onOpen: () => void }) {
   const aiSettings = useAssistantStore((s) => s.aiSettings)
-  const ready =
-    aiSettings !== null &&
-    aiSettings.provider !== 'off' &&
-    aiSettings.hasKey
+  const llmReady =
+    aiSettings !== null && aiSettings.provider === 'gemini' && aiSettings.hasKey
   return (
     <button
       onClick={onOpen}
@@ -108,9 +130,9 @@ function AISettingsButton({ onOpen }: { onOpen: () => void }) {
     >
       🤖 Cài đặt AI — dịch &amp; trích xuất thông minh
       <span className="block text-[11px] font-normal text-shell-dim">
-        {ready
-          ? '🟢 Đã cấu hình API key — dịch thật + deadline thông minh đang bật'
-          : '⚪ Chưa có API key — đang chạy chế độ quy tắc, chưa dịch được'}
+        {llmReady
+          ? '🟢 LLM Gemini đang bật — dịch mượt + trích xuất thông minh'
+          : '🌐 Đang dịch miễn phí không cần key — dán key Gemini để mở LLM'}
       </span>
     </button>
   )

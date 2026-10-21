@@ -1,4 +1,4 @@
-import { dialog, ipcMain, type WebContents } from 'electron'
+import { dialog, ipcMain, shell, type WebContents } from 'electron'
 import { randomUUID } from 'node:crypto'
 import {
   AccountInstance,
@@ -185,6 +185,31 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     aiService.testConnection()
   )
 
+  // -- External links (Sprint 3, MUSE-07) ----------------------------------
+  // Only Google Calendar template links may leave the app; anything else
+  // a web page tries to push through here is refused.
+
+  ipcMain.handle(
+    IPC_CHANNELS.SHELL_OPEN_EXTERNAL,
+    async (_event, url: string) => {
+      if (typeof url !== 'string') return false
+      let parsed: URL
+      try {
+        parsed = new URL(url)
+      } catch {
+        return false
+      }
+      if (
+        parsed.protocol !== 'https:' ||
+        parsed.hostname !== 'calendar.google.com'
+      ) {
+        return false
+      }
+      await shell.openExternal(url)
+      return true
+    }
+  )
+
   // -- LINE extension (Sprint 2, MUSE-04) --------------------------------
 
   ipcMain.handle(IPC_CHANNELS.LINE_GET_STATUS, () => extensionLoader.status())
@@ -208,11 +233,19 @@ export function registerIpcHandlers(deps: IpcDeps): void {
 
   ipcMain.handle(IPC_CHANNELS.KAKAO_LAUNCH, () => launchKakaoTalk())
 
-  ipcMain.handle(IPC_CHANNELS.KAKAO_DOCK, () =>
-    dockKakaoTalk(viewManager.viewportScreenBounds())
-  )
+  ipcMain.handle(IPC_CHANNELS.KAKAO_DOCK, async () => {
+    const result = await dockKakaoTalk(viewManager.viewportScreenBounds())
+    // Sprint 3 (MUSE-08): a successful dock arms the auto-follow /
+    // auto-hide lifecycle sync in the ViewManager.
+    if (result.ok) viewManager.setKakaoDocked(true)
+    return result
+  })
 
-  ipcMain.handle(IPC_CHANNELS.KAKAO_UNDOCK, () => undockKakaoTalk())
+  ipcMain.handle(IPC_CHANNELS.KAKAO_UNDOCK, async () => {
+    const result = await undockKakaoTalk()
+    if (result.ok) viewManager.setKakaoDocked(false)
+    return result
+  })
 
   // -- Chat preload signals --------------------------------------------------
 
