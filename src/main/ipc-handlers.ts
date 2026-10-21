@@ -1,4 +1,4 @@
-import { ipcMain, type WebContents } from 'electron'
+import { dialog, ipcMain, type WebContents } from 'electron'
 import { randomUUID } from 'node:crypto'
 import {
   AccountInstance,
@@ -7,14 +7,24 @@ import {
   IPC_CHANNELS,
   IncomingNotificationPayload,
   RemoveAccountPayload,
+  ScheduleEvent,
   SERVICE_CATALOG,
   SetAssistantPanelPayload,
   SetChatVisiblePayload,
   SetSidebarWidthPayload,
   SwitchAccountPayload,
+  TodoItem,
   UnreadUpdatedPayload
 } from '../shared/types'
-import { evaluateNotification, toNewDirectivePayload } from './boss-filter'
+import { AssistantService } from './assistant-service'
+import { evaluateNotification } from './boss-filter'
+import { ExtensionLoader } from './extension-loader'
+import {
+  detectKakaoTalk,
+  dockKakaoTalk,
+  launchKakaoTalk,
+  undockKakaoTalk
+} from './native-dock/kakao-docker'
 import { SessionVault } from './session-vault'
 import { JsonStore } from './store'
 import { ViewManager } from './view-manager'
@@ -23,6 +33,8 @@ export interface IpcDeps {
   store: JsonStore
   vault: SessionVault
   viewManager: ViewManager
+  assistant: AssistantService
+  extensionLoader: ExtensionLoader
   /** The shell (React UI) webContents — target for Main -> Renderer events. */
   shellWebContents: () => WebContents | null
 }
@@ -36,7 +48,7 @@ export interface IpcDeps {
  * ever report about itself.
  */
 export function registerIpcHandlers(deps: IpcDeps): void {
-  const { store, vault, viewManager } = deps
+  const { store, vault, viewManager, assistant, extensionLoader } = deps
 
   // -- Accounts ------------------------------------------------------------
 
@@ -133,11 +145,63 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     }
   )
 
+  // -- Assistant state persistence (REV-01 [HIGH-04]) ----------------------
+
+  ipcMain.handle(IPC_CHANNELS.ASSISTANT_GET_STATE, () => assistant.getState())
+
+  ipcMain.handle(
+    IPC_CHANNELS.ASSISTANT_SAVE_TODOS,
+    (_event, todos: TodoItem[]) => {
+      assistant.saveTodos(Array.isArray(todos) ? todos : [])
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.ASSISTANT_SAVE_EVENTS,
+    (_event, events: ScheduleEvent[]) => {
+      assistant.saveEvents(Array.isArray(events) ? events : [])
+    }
+  )
+
+  // -- LINE extension (Sprint 2, MUSE-04) --------------------------------
+
+  ipcMain.handle(IPC_CHANNELS.LINE_GET_STATUS, () => extensionLoader.status())
+
+  ipcMain.handle(IPC_CHANNELS.LINE_PICK_EXTENSION_DIR, async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Chọn thư mục LINE Extension (chứa manifest.json)',
+      properties: ['openDirectory']
+    })
+    if (!result.canceled && result.filePaths[0]) {
+      store.data.lineExtensionDir = result.filePaths[0]
+      store.save()
+      await viewManager.reloadLineViews()
+    }
+    return extensionLoader.status()
+  })
+
+  // -- KakaoTalk native dock (Sprint 2, MUSE-05) --------------------------
+
+  ipcMain.handle(IPC_CHANNELS.KAKAO_GET_STATUS, () => detectKakaoTalk())
+
+  ipcMain.handle(IPC_CHANNELS.KAKAO_LAUNCH, () => launchKakaoTalk())
+
+  ipcMain.handle(IPC_CHANNELS.KAKAO_DOCK, () =>
+    dockKakaoTalk(viewManager.viewportScreenBounds())
+  )
+
+  ipcMain.handle(IPC_CHANNELS.KAKAO_UNDOCK, () => undockKakaoTalk())
+
   // -- Chat preload signals --------------------------------------------------
 
+  // REV-01 [CRITICAL-03]: the account is resolved AUTHORITATIVELY from
+  // `event.sender` through the ViewManager map. The payload's accountId is
+  // only a hint (it may be empty when a sandboxed preload cannot see
+  // `additionalArguments`): reject solely on an actual mismatch.
   ipcMain.on(IPC_CHANNELS.CHAT_UNREAD_UPDATED, (event, payload: UnreadUpdatedPayload) => {
     const accountId = viewManager.accountIdForWebContents(event.sender.id)
-    if (!accountId || payload.accountId !== accountId) return
+    if (!accountId) return
+    if (payload.accountId && payload.accountId !== accountId) return
     // setUnread forwards to the shell via ViewManager's emitUnread callback.
     viewManager.setUnread(accountId, payload.unreadCount)
   })
@@ -146,17 +210,15 @@ export function registerIpcHandlers(deps: IpcDeps): void {
     IPC_CHANNELS.CHAT_INCOMING_NOTIFICATION,
     (event, payload: IncomingNotificationPayload) => {
       const accountId = viewManager.accountIdForWebContents(event.sender.id)
-      if (!accountId || payload.accountId !== accountId) return
+      if (!accountId) return
+      if (payload.accountId && payload.accountId !== accountId) return
       const account = store.getAccount(accountId)
       if (!account || account.isMuted) return
       const result = evaluateNotification(store.data.bossRule, account, payload)
       if (!result) return
-      deps
-        .shellWebContents()
-        ?.send(
-          IPC_CHANNELS.ASSISTANT_NEW_DIRECTIVE,
-          toNewDirectivePayload(result)
-        )
+      // REV-01 [HIGH-04]: AssistantService persists the directive (and the
+      // todo/event when present) to the JsonStore before broadcasting.
+      assistant.ingestFilterResult(result)
     }
   )
 }

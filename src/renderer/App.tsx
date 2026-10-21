@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { LAYOUT, SERVICE_CATALOG } from '../shared/types'
+import {
+  DockResult,
+  KakaoStatus,
+  LAYOUT,
+  LineStatus,
+  SERVICE_CATALOG,
+  ServiceType
+} from '../shared/types'
 import AddServiceModal from './components/AddServiceModal'
 import BossWatchlistModal from './components/BossWatchlistModal'
 import RightAssistantPanel from './components/RightAssistantPanel'
@@ -16,6 +23,91 @@ import { useAssistantStore } from './store/useAssistantStore'
  * it and keeps Main in sync about the geometry (assistant panel, sidebar
  * width) and about modal visibility (Acceptance Criteria #2).
  */
+const barButtonClass =
+  'rounded-lg bg-shell-panel2 px-2.5 py-1 text-[12px] text-shell-text hover:ring-1 hover:ring-shell-accentDim'
+
+/**
+ * Sprint 2: contextual controls in the top bar for the two non-web
+ * integrations — LINE (Chrome extension) and KakaoTalk (native window).
+ */
+function NativeServiceBar({ serviceType }: { serviceType: ServiceType }) {
+  const [lineStatus, setLineStatus] = useState<LineStatus | null>(null)
+  const [kakaoStatus, setKakaoStatus] = useState<KakaoStatus | null>(null)
+  const [note, setNote] = useState('')
+
+  useEffect(() => {
+    if (serviceType === 'line-personal') {
+      void window.multiworkAPI.getLineStatus().then(setLineStatus)
+    } else if (serviceType === 'kakaotalk-personal') {
+      void window.multiworkAPI.getKakaoStatus().then(setKakaoStatus)
+    }
+  }, [serviceType])
+
+  if (serviceType === 'line-personal') {
+    return (
+      <span className="app-no-drag flex items-center gap-2">
+        <span className="text-[12px] text-shell-dim">
+          {lineStatus?.extensionId
+            ? 'LINE Extension: đã nạp ✅'
+            : lineStatus?.available
+              ? 'LINE Extension: đã có thư mục'
+              : 'LINE Extension: chưa có thư mục'}
+        </span>
+        <button
+          className={barButtonClass}
+          onClick={() => {
+            void window.multiworkAPI
+              .pickLineExtensionDir()
+              .then(setLineStatus)
+          }}
+        >
+          📁 Thư mục Extension LINE
+        </button>
+      </span>
+    )
+  }
+
+  if (serviceType === 'kakaotalk-personal') {
+    const run = async (fn: () => Promise<DockResult>): Promise<void> => {
+      const r = await fn()
+      setNote(r.ok ? '✅' : `⚠️ ${r.reason ?? 'lỗi'}`)
+      setKakaoStatus(await window.multiworkAPI.getKakaoStatus())
+    }
+    return (
+      <span className="app-no-drag flex items-center gap-2">
+        <span className="text-[12px] text-shell-dim">
+          {kakaoStatus
+            ? kakaoStatus.installed
+              ? 'KakaoTalk: đã cài ✅'
+              : 'KakaoTalk: chưa cài'
+            : 'KakaoTalk: ...'}{' '}
+          {note}
+        </span>
+        <button
+          className={barButtonClass}
+          onClick={() => void run(() => window.multiworkAPI.launchKakao())}
+        >
+          Mở KakaoTalk
+        </button>
+        <button
+          className={barButtonClass}
+          onClick={() => void run(() => window.multiworkAPI.dockKakao())}
+        >
+          Ghép cửa sổ
+        </button>
+        <button
+          className={barButtonClass}
+          onClick={() => void run(() => window.multiworkAPI.undockKakao())}
+        >
+          Thả cửa sổ
+        </button>
+      </span>
+    )
+  }
+
+  return null
+}
+
 export default function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -84,6 +176,7 @@ export default function App() {
             )}
           </span>
         )}
+        {active && <NativeServiceBar serviceType={active.serviceType} />}
         <div className="ml-auto">
           <button
             onClick={() => setPanelOpen(!panelOpen)}

@@ -1,4 +1,4 @@
-import { BaseWindow, WebContentsView } from 'electron'
+import { BaseWindow, Menu, WebContentsView } from 'electron'
 import path from 'node:path'
 import {
   AccountInstance,
@@ -6,6 +6,12 @@ import {
   SERVICE_CATALOG,
   UnreadUpdatedPayload
 } from '../shared/types'
+import type { SelectionActionKind } from './assistant-service'
+import { ExtensionLoader } from './extension-loader'
+import {
+  detectKakaoTalk,
+  kakaoGuidePage
+} from './native-dock/kakao-docker'
 import { SessionVault } from './session-vault'
 import { JsonStore } from './store'
 
@@ -54,11 +60,20 @@ export class ViewManager {
     chatVisible: true
   }
 
+  /**
+   * Sprint 2 (MUSE-04): wired by index.ts — receives text selections the
+   * user picks from a chat view's context menu.
+   */
+  onSelectionAction:
+    | ((account: AccountInstance, text: string, kind: SelectionActionKind) => void)
+    | null = null
+
   constructor(
     private readonly window: BaseWindow,
     private readonly vault: SessionVault,
     private readonly store: JsonStore,
-    private readonly emitUnread: (payload: UnreadUpdatedPayload) => void
+    private readonly emitUnread: (payload: UnreadUpdatedPayload) => void,
+    private readonly extensionLoader?: ExtensionLoader
   ) {}
 
   get activeId(): string | null {
@@ -98,6 +113,27 @@ export class ViewManager {
       this.setUnread(account.id, parseUnreadFromTitle(title))
     })
 
+    // Sprint 2 (MUSE-04): selection context menu. `params.selectionText`
+    // is captured by Chromium itself, so this works on EVERY chat platform
+    // regardless of the web app's DOM. The picked text is forwarded to the
+    // AssistantService, which persists it as a directive / To-Do.
+    view.webContents.on('context-menu', (_event, params) => {
+      const text = params.selectionText?.trim()
+      if (!text || !this.onSelectionAction) return
+      const handler = this.onSelectionAction
+      const menu = Menu.buildFromTemplate([
+        {
+          label: '🤖 Dịch & Thêm vào Việc cần làm (MultiWork AI)',
+          click: () => handler(account, text, 'todo')
+        },
+        {
+          label: '📌 Đánh dấu là Chỉ thị của Sếp',
+          click: () => handler(account, text, 'directive')
+        }
+      ])
+      menu.popup({ window: this.window })
+    })
+
     this.views.set(account.id, view)
     this.accountByWebContentsId.set(view.webContents.id, account.id)
     this.window.contentView.addChildView(view)
@@ -105,18 +141,53 @@ export class ViewManager {
     view.setVisible(false)
 
     const entry = SERVICE_CATALOG[account.serviceType]
-    if (account.homeUrl) {
-      await view.webContents.loadURL(account.homeUrl).catch(() => undefined)
-    } else if (entry.kind === 'extension') {
+    if (entry.kind === 'extension') {
+      // Sprint 2 (MUSE-04): LINE runs as the official Chrome extension
+      // inside this account's own session partition.
+      const loaded = this.extensionLoader
+        ? await this.extensionLoader.ensureLoaded(ses, account.partitionName)
+        : null
+      const url = loaded
+        ? this.extensionLoader!.extensionUrl(loaded.extensionId)
+        : this.extensionLoader?.guidePage() ??
+          placeholderPage(entry.label, 'Sprint 2 (Extension Loader)')
+      await view.webContents.loadURL(url).catch(() => undefined)
+    } else if (entry.kind === 'native') {
+      // Sprint 2 (MUSE-05): KakaoTalk is coordinated as a native window;
+      // the chat view shows the status/guide page.
       await view.webContents
-        .loadURL(placeholderPage(entry.label, 'Sprint 2 (Extension Loader)'))
+        .loadURL(kakaoGuidePage(detectKakaoTalk()))
         .catch(() => undefined)
+    } else if (account.homeUrl) {
+      await view.webContents.loadURL(account.homeUrl).catch(() => undefined)
     } else {
       await view.webContents
-        .loadURL(placeholderPage(entry.label, 'Sprint 2 (Native Window Docker)'))
+        .loadURL(placeholderPage(entry.label, 'Sprint 2'))
         .catch(() => undefined)
     }
     return view
+  }
+
+  /**
+   * Sprint 2 (MUSE-04): after the user picks a LINE extension folder,
+   * (re)load every LINE view against the (new) extension state.
+   */
+  async reloadLineViews(): Promise<void> {
+    if (!this.extensionLoader) return
+    for (const account of this.store.data.accounts) {
+      if (SERVICE_CATALOG[account.serviceType].kind !== 'extension') continue
+      const view = this.views.get(account.id)
+      if (!view) continue
+      const ses = this.vault.sessionFor(account)
+      const loaded = await this.extensionLoader.ensureLoaded(
+        ses,
+        account.partitionName
+      )
+      const url = loaded
+        ? this.extensionLoader.extensionUrl(loaded.extensionId)
+        : this.extensionLoader.guidePage()
+      await view.webContents.loadURL(url).catch(() => undefined)
+    }
   }
 
   /** Show one account's view in the viewport; hide the previous one. */
@@ -183,6 +254,21 @@ export class ViewManager {
       y: LAYOUT.TOP_BAR_HEIGHT,
       width: Math.max(0, width - this.layout.sidebarWidth - right),
       height: Math.max(0, height - LAYOUT.TOP_BAR_HEIGHT)
+    }
+  }
+
+  /**
+   * The viewport rectangle in absolute SCREEN coordinates (Sprint 2,
+   * MUSE-05: the rectangle the KakaoTalk window is docked onto).
+   */
+  viewportScreenBounds(): { x: number; y: number; width: number; height: number } {
+    const rel = this.viewportBounds()
+    const content = this.window.getContentBounds()
+    return {
+      x: content.x + rel.x,
+      y: content.y + rel.y,
+      width: rel.width,
+      height: rel.height
     }
   }
 }

@@ -1,6 +1,8 @@
 import { app, BaseWindow, WebContentsView } from 'electron'
 import path from 'node:path'
 import { IPC_CHANNELS, LAYOUT } from '../shared/types'
+import { AssistantService } from './assistant-service'
+import { ExtensionLoader } from './extension-loader'
 import { registerIpcHandlers } from './ipc-handlers'
 import { KeepAliveService } from './keep-alive'
 import { SessionVault } from './session-vault'
@@ -20,6 +22,7 @@ async function createWindow(): Promise<void> {
   const store = await JsonStore.load(app.getPath('userData'))
   const vault = new SessionVault(store)
   vaultRef = vault
+  const extensionLoader = new ExtensionLoader(store)
 
   mainWindow = new BaseWindow({
     width: LAYOUT.DEFAULT_WINDOW_WIDTH,
@@ -50,14 +53,32 @@ async function createWindow(): Promise<void> {
   }
   fitShell()
 
-  viewManager = new ViewManager(mainWindow, vault, store, (payload) => {
-    shellView?.webContents.send(IPC_CHANNELS.CHAT_UNREAD_UPDATED, payload)
+  viewManager = new ViewManager(
+    mainWindow,
+    vault,
+    store,
+    (payload) => {
+      shellView?.webContents.send(IPC_CHANNELS.CHAT_UNREAD_UPDATED, payload)
+    },
+    extensionLoader
+  )
+
+  // AssistantService persists every directive/todo/event (REV-01 [HIGH-04])
+  // and broadcasts new items to the shell.
+  const assistant = new AssistantService(store, (payload) => {
+    shellView?.webContents.send(IPC_CHANNELS.ASSISTANT_NEW_DIRECTIVE, payload)
   })
+  // Sprint 2 (MUSE-04): chat-view context-menu selections land here.
+  viewManager.onSelectionAction = (account, text, kind) => {
+    assistant.ingestSelection(account, text, kind)
+  }
 
   registerIpcHandlers({
     store,
     vault,
     viewManager,
+    assistant,
+    extensionLoader,
     shellWebContents: () => shellView?.webContents ?? null
   })
 
