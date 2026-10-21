@@ -1,0 +1,17 @@
+appId: vn.sonsmartsoft.multiwork
+productName: MultiWork
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+win:
+  target:
+    - nsis
+mac:
+  target:
+    - dmg
+  category: public.app-category.productivity
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
