@@ -99,10 +99,12 @@ export const SERVICE_CATALOG: Record<ServiceType, ServiceCatalogEntry> = {
   wechat: {
     serviceType: 'wechat',
     label: 'WeChat',
-    // Tencent restricts Web WeChat logins for many newer accounts; when the
-    // account is eligible this is the official web client.
+    // Tencent blocks Web WeChat logins for many accounts ("service not
+    // available for your account"), so WeChat is coordinated as a NATIVE
+    // desktop window like KakaoTalk. The web URL stays as a fallback link
+    // inside the guide page for the accounts Tencent still allows.
     url: 'https://web.wechat.com',
-    kind: 'web',
+    kind: 'native',
     color: '#07c160',
     glyph: 'We'
   },
@@ -301,6 +303,12 @@ export const IPC_CHANNELS = {
   KAKAO_LAUNCH: 'kakao:launch',
   KAKAO_DOCK: 'kakao:dock',
   KAKAO_UNDOCK: 'kakao:undock',
+  // [extension] WeChat native window coordination (same pattern as Kakao;
+  // Web WeChat is blocked by Tencent for many accounts).
+  WECHAT_GET_STATUS: 'wechat:get-status',
+  WECHAT_LAUNCH: 'wechat:launch',
+  WECHAT_DOCK: 'wechat:dock',
+  WECHAT_UNDOCK: 'wechat:undock',
   // [extension] AI engine settings + connection test. The API key is held
   // ONLY by the Main process (encrypted at rest); it never crosses IPC.
   AI_GET_SETTINGS: 'ai:get-settings',
@@ -389,6 +397,9 @@ export interface KakaoStatus {
   platform: string
 }
 
+/** WeChat native integration state — same shape as KakaoStatus. */
+export type WeChatStatus = KakaoStatus
+
 export interface DockResult {
   ok: boolean
   reason?: string
@@ -438,6 +449,10 @@ export interface MultiWorkAPI {
   launchKakao(): Promise<DockResult>
   dockKakao(): Promise<DockResult>
   undockKakao(): Promise<DockResult>
+  getWeChatStatus(): Promise<WeChatStatus>
+  launchWeChat(): Promise<DockResult>
+  dockWeChat(): Promise<DockResult>
+  undockWeChat(): Promise<DockResult>
   /** Subscribe to unread badge updates. Returns an unsubscribe function. */
   onUnreadUpdated(callback: (payload: UnreadUpdatedPayload) => void): () => void
   /** Subscribe to new boss directives. Returns an unsubscribe function. */

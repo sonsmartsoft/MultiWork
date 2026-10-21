@@ -5,7 +5,8 @@ import {
   LAYOUT,
   LineStatus,
   SERVICE_CATALOG,
-  ServiceType
+  ServiceType,
+  WeChatStatus
 } from '../shared/types'
 import AddServiceModal from './components/AddServiceModal'
 import AISettingsModal from './components/AISettingsModal'
@@ -34,6 +35,7 @@ const barButtonClass =
 function NativeServiceBar({ serviceType }: { serviceType: ServiceType }) {
   const [lineStatus, setLineStatus] = useState<LineStatus | null>(null)
   const [kakaoStatus, setKakaoStatus] = useState<KakaoStatus | null>(null)
+  const [wechatStatus, setWechatStatus] = useState<WeChatStatus | null>(null)
   const [note, setNote] = useState('')
 
   useEffect(() => {
@@ -41,6 +43,8 @@ function NativeServiceBar({ serviceType }: { serviceType: ServiceType }) {
       void window.multiworkAPI.getLineStatus().then(setLineStatus)
     } else if (serviceType === 'kakaotalk-personal') {
       void window.multiworkAPI.getKakaoStatus().then(setKakaoStatus)
+    } else if (serviceType === 'wechat') {
+      void window.multiworkAPI.getWeChatStatus().then(setWechatStatus)
     }
   }, [serviceType])
 
@@ -99,6 +103,44 @@ function NativeServiceBar({ serviceType }: { serviceType: ServiceType }) {
         <button
           className={barButtonClass}
           onClick={() => void run(() => window.multiworkAPI.undockKakao())}
+        >
+          Thả cửa sổ
+        </button>
+      </span>
+    )
+  }
+
+  if (serviceType === 'wechat') {
+    const run = async (fn: () => Promise<DockResult>): Promise<void> => {
+      const r = await fn()
+      setNote(r.ok ? '✅' : `⚠️ ${r.reason ?? 'lỗi'}`)
+      setWechatStatus(await window.multiworkAPI.getWeChatStatus())
+    }
+    return (
+      <span className="app-no-drag flex items-center gap-2">
+        <span className="text-[12px] text-shell-dim">
+          {wechatStatus
+            ? wechatStatus.installed
+              ? 'WeChat: đã cài ✅'
+              : 'WeChat: chưa cài'
+            : 'WeChat: ...'}{' '}
+          {note}
+        </span>
+        <button
+          className={barButtonClass}
+          onClick={() => void run(() => window.multiworkAPI.launchWeChat())}
+        >
+          Mở WeChat
+        </button>
+        <button
+          className={barButtonClass}
+          onClick={() => void run(() => window.multiworkAPI.dockWeChat())}
+        >
+          Ghép cửa sổ
+        </button>
+        <button
+          className={barButtonClass}
+          onClick={() => void run(() => window.multiworkAPI.undockWeChat())}
         >
           Thả cửa sổ
         </button>

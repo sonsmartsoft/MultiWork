@@ -14,6 +14,12 @@ import {
   kakaoGuidePage,
   minimizeKakaoTalk
 } from './native-dock/kakao-docker'
+import {
+  detectWeChat,
+  dockWeChat,
+  minimizeWeChat,
+  wechatGuidePage
+} from './native-dock/wechat-docker'
 import { SessionVault } from './session-vault'
 import { JsonStore } from './store'
 
@@ -74,6 +80,10 @@ export class ViewManager {
   private kakaoDocked = false
   private kakaoSyncTimer: NodeJS.Timeout | null = null
 
+  /** WeChat native window lifecycle sync state (MUSE-08 pattern). */
+  private wechatDocked = false
+  private wechatSyncTimer: NodeJS.Timeout | null = null
+
   constructor(
     private readonly window: BaseWindow,
     private readonly vault: SessionVault,
@@ -86,6 +96,7 @@ export class ViewManager {
     const onWindowGeometry = () => {
       this.handleResize()
       this.scheduleKakaoSync()
+      this.scheduleWechatSync()
     }
     this.window.on('resize', onWindowGeometry)
     this.window.on('move', onWindowGeometry)
@@ -123,6 +134,37 @@ export class ViewManager {
       void dockKakaoTalk(this.viewportScreenBounds()).catch(() => undefined)
     } else {
       void minimizeKakaoTalk().catch(() => undefined)
+    }
+  }
+
+  /** Called by the WeChat IPC handlers after a successful dock / undock. */
+  setWechatDocked(docked: boolean): void {
+    this.wechatDocked = docked
+    this.syncWechatVisibility()
+  }
+
+  private activeIsWechat(): boolean {
+    if (!this.activeAccountId) return false
+    const account = this.store.getAccount(this.activeAccountId)
+    return account?.serviceType === 'wechat'
+  }
+
+  private scheduleWechatSync(): void {
+    if (!this.wechatDocked) return
+    if (this.wechatSyncTimer) clearTimeout(this.wechatSyncTimer)
+    this.wechatSyncTimer = setTimeout(() => {
+      this.wechatSyncTimer = null
+      this.syncWechatVisibility()
+    }, 120)
+  }
+
+  /** WeChat twin of syncKakaoVisibility (MUSE-08 pattern). */
+  private syncWechatVisibility(): void {
+    if (!this.wechatDocked) return
+    if (this.activeIsWechat() && this.layout.chatVisible) {
+      void dockWeChat(this.viewportScreenBounds()).catch(() => undefined)
+    } else {
+      void minimizeWeChat().catch(() => undefined)
     }
   }
 
@@ -204,10 +246,13 @@ export class ViewManager {
       await view.webContents.loadURL(url).catch(() => undefined)
     } else if (entry.kind === 'native') {
       // Sprint 2 (MUSE-05): KakaoTalk is coordinated as a native window;
-      // the chat view shows the status/guide page.
-      await view.webContents
-        .loadURL(kakaoGuidePage(detectKakaoTalk()))
-        .catch(() => undefined)
+      // the chat view shows the status/guide page. WeChat follows the same
+      // pattern (Web WeChat is blocked by Tencent for many accounts).
+      const guide =
+        account.serviceType === 'wechat'
+          ? wechatGuidePage(detectWeChat())
+          : kakaoGuidePage(detectKakaoTalk())
+      await view.webContents.loadURL(guide).catch(() => undefined)
     } else if (account.homeUrl) {
       await view.webContents.loadURL(account.homeUrl).catch(() => undefined)
     } else {
@@ -254,6 +299,7 @@ export class ViewManager {
     view.setBounds(this.viewportBounds())
     view.setVisible(this.layout.chatVisible)
     this.scheduleKakaoSync()
+    this.scheduleWechatSync()
   }
 
   /** Destroy a view and drop its bookkeeping (partition wipe is separate). */
@@ -266,6 +312,7 @@ export class ViewManager {
     this.views.delete(accountId)
     if (this.activeAccountId === accountId) this.activeAccountId = null
     this.scheduleKakaoSync()
+    this.scheduleWechatSync()
   }
 
   /** Merge new layout inputs and re-apply bounds/visibility to the active view. */
@@ -279,6 +326,7 @@ export class ViewManager {
       active.setVisible(this.layout.chatVisible)
     }
     this.scheduleKakaoSync()
+    this.scheduleWechatSync()
   }
 
   /** Re-apply bounds after the window itself was resized. */

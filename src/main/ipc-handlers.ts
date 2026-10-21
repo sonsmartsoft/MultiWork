@@ -27,6 +27,12 @@ import {
   launchKakaoTalk,
   undockKakaoTalk
 } from './native-dock/kakao-docker'
+import {
+  detectWeChatDeep,
+  dockWeChat,
+  launchWeChat,
+  undockWeChat
+} from './native-dock/wechat-docker'
 import { SessionVault } from './session-vault'
 import { JsonStore } from './store'
 import { ViewManager } from './view-manager'
@@ -244,6 +250,24 @@ export function registerIpcHandlers(deps: IpcDeps): void {
   ipcMain.handle(IPC_CHANNELS.KAKAO_UNDOCK, async () => {
     const result = await undockKakaoTalk()
     if (result.ok) viewManager.setKakaoDocked(false)
+    return result
+  })
+
+  // -- WeChat native dock (same pattern as KakaoTalk) -----------------------
+
+  ipcMain.handle(IPC_CHANNELS.WECHAT_GET_STATUS, () => detectWeChatDeep())
+
+  ipcMain.handle(IPC_CHANNELS.WECHAT_LAUNCH, () => launchWeChat())
+
+  ipcMain.handle(IPC_CHANNELS.WECHAT_DOCK, async () => {
+    const result = await dockWeChat(viewManager.viewportScreenBounds())
+    if (result.ok) viewManager.setWechatDocked(true)
+    return result
+  })
+
+  ipcMain.handle(IPC_CHANNELS.WECHAT_UNDOCK, async () => {
+    const result = await undockWeChat()
+    if (result.ok) viewManager.setWechatDocked(false)
     return result
   })
 
