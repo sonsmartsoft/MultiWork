@@ -37,9 +37,9 @@ File này là **Bảng điều phối trung tâm (Single Source of Truth)** trê
 | **MUSE-05** | **[Sprint 2 - Phần B]** Tích hợp KakaoTalk Cá nhân (`kakao-docker.ts`) + Windows Registry Probe + WeChat | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Pass 100% |
 | **REV-02** | Kiểm tra, Review Code & Nghiệm thu kết quả `MUSE-FIX-01` + Sprint 2 (`MUSE-04`, `MUSE-05`) | **Architect** | ✅ Đã xong | Báo cáo tại [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Tất cả các hạng mục đạt chuẩn 100% |
 | **MUSE-06.A** | **[Sprint 3]** Tích hợp Google Gemini AI Engine + `safeStorage` mã hóa key + `AISettingsModal.tsx` | **Muse.ai** | ✅ Đã xong (`9f7c30f`, `71b06a5`) | Xem `src/main/ai-service.ts` & `AISettingsModal.tsx` | Đã test typecheck & build sạch |
-| **MUSE-06.B** | **[Sprint 3]** Fallback Dịch Miễn Phí (Google Translate HTTPS) khi chưa có API Key + Tự động trích xuất Lịch hẹn (`ScheduleEvent`) từ tin nhắn Sếp | **Muse.ai** | 🎯 **Đang thực hiện** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Đảm bảo app luôn dịch được kể cả khi chưa nhập key |
-| **MUSE-07** | **[Sprint 3]** Hệ thống Chuông Nhắc Việc ngầm (`scheduler-alarm.ts`) & Nâng cấp tab 📅 Lịch trình (`ScheduleCalendar.tsx`) | **Muse.ai** | 🎯 **Giao cho Muse** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Bắn Desktop Notification trước 15p + Thêm vào Google Calendar |
-| **MUSE-08** | **[Sprint 3]** Đồng bộ tự động cửa sổ KakaoTalk (Auto-Follow khi resize/move & Auto-Hide khi đổi tab Zalo) | **Muse.ai** | 🎯 **Giao cho Muse** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Giữ trải nghiệm cửa sổ thống nhất |
+| **MUSE-06.B** | **[Sprint 3]** Fallback Dịch Miễn Phí (Google Translate HTTPS) khi chưa có API Key + Tự động trích xuất Lịch hẹn (`ScheduleEvent`) từ tin nhắn Sếp | **Muse.ai** | ✅ Đã xong — chờ `REV-03` | Xem `src/main/ai-service.ts` (`translateFree`, `extractScheduleAndDeadline`) & `assistant-service.ts` | Đảm bảo app luôn dịch được kể cả khi chưa nhập key |
+| **MUSE-07** | **[Sprint 3]** Hệ thống Chuông Nhắc Việc ngầm (`scheduler-alarm.ts`) & Nâng cấp tab 📅 Lịch trình (`ScheduleCalendar.tsx`) | **Muse.ai** | ✅ Đã xong — chờ `REV-03` | Xem `src/main/ai-assistant/scheduler-alarm.ts` & `ScheduleCalendar.tsx` | Bắn Desktop Notification trước 15p + Thêm vào Google Calendar |
+| **MUSE-08** | **[Sprint 3]** Đồng bộ tự động cửa sổ KakaoTalk (Auto-Follow khi resize/move & Auto-Hide khi đổi tab Zalo) | **Muse.ai** | ✅ Đã xong — chờ `REV-03` | Xem `view-manager.ts` (`syncKakaoVisibility`) & `kakao-docker.ts` (`minimizeKakaoTalk`) | Giữ trải nghiệm cửa sổ thống nhất |
 | **REV-03** | Nghiệm thu toàn diện Sprint 3 (`MUSE-06..08`) | **Architect** | ⏳ Chờ Muse hoàn tất | — | Sẽ thực hiện ngay khi Muse push |
 
 ---
@@ -57,3 +57,19 @@ File này là **Bảng điều phối trung tâm (Single Source of Truth)** trê
      - Nâng cấp `ScheduleCalendar.tsx`: Cho phép người dùng bấm nút `+ Thêm lịch hẹn thủ công`, nút `✕` để xóa sự kiện, và nút `📅 Thêm vào Google Calendar` (mở link template Google Calendar).
   3. **`MUSE-08` (KakaoTalk Auto-Follow & Auto-Hide)**:
      - Trong `view-manager.ts` và `kakao-docker.ts`: Khi cửa sổ KakaoTalk đang ở chế độ ghép (`docked`), lắng nghe `mainWindow.on('move')` và `mainWindow.on('resize')` để tự động kéo cửa sổ KakaoTalk di chuyển theo khung nhìn của MultiWork; đồng thời tự động thu nhỏ KakaoTalk khi chuyển sang tab Zalo/Messenger/Modal và hiện lại khi quay lại tab KakaoTalk.
+
+### 💻 Báo cáo từ Muse.ai (Hoàn tất Sprint 3 — chờ `REV-03`)
+
+Đã triển khai xong 3 hạng mục còn lại của Sprint 3 theo đúng đặc tả `docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md` và ghi chú bổ sung của Architect tại commit `c0effdd`:
+
+1. **`MUSE-06.B` — Free Translation Fallback + Event Extraction** (`src/main/ai-service.ts`, `src/main/assistant-service.ts`):
+   - `aiService.translate()` thành chuỗi 2 tầng: có key Gemini → LLM; chưa có key **hoặc LLM lỗi** → tự rớt xuống `translateFree()` gọi endpoint `translate.googleapis.com/translate_a/single?client=gtx` — dịch không bao giờ gãy. Pipeline `enrich()` không còn khóa cứng ở `isReady()` nữa.
+   - `extractScheduleAndDeadline(text, now)`: bộ trích xuất regex đa ngôn ngữ (Việt/Hàn/Nhật/Anh) — mốc ngày (hôm nay/ngày mai/ngày kia, `DD/MM`, `YYYY-MM-DD`, `X월 Y일`, `X月Y日`), mốc giờ (`HH:mm`, `Xh`, `X giờ`, `X시 Y분`, `X時`, `am/pm`, buổi sáng/chiều/tối · 오전/오후 · 午前/午後), từ khóa họp. Điền `todo.dueAt`, viết tiêu đề To-Do bằng ngôn ngữ đã dịch, và **tự tạo `ScheduleEvent`** (60 phút, nhắc trước 15 phút, chống trùng theo tài khoản + mốc giờ) khi `autoCreateEvent === true`.
+   - Đã kiểm thử bằng chính ví dụ của Architect: `"mai 10h họp"` → ngày mai 10:00 ✅; `"오후 3시에 회의"` → hôm nay 15:00 ✅; `"내일 오후 3시에 화상회의 합시다"` → ngày mai 15:00 ✅; `"Chiều mai 15:00 họp dự án"` ✅; `"会議は明日10時から"` ✅; `"Meeting at 3pm tomorrow"` ✅.
+2. **`MUSE-07` — Scheduler Alarm & Schedule UI** (`src/main/ai-assistant/scheduler-alarm.ts`, `ScheduleCalendar.tsx`):
+   - Vòng lặp 30s quét `events` + `todos` có `dueAt` chưa xong; vào ngưỡng nhắc (event: `startTime - reminderMinutesBefore`; todo: trước hạn 15 phút) thì bắn Electron `Notification` (`⏰ Nhắc việc MultiWork`) 1 lần/duy nhất mỗi mốc (`notifiedIds`) + đẩy IPC `assistant:alarm` để panel hiện banner tắt được.
+   - Tab 📅 Lịch trình: form **+ Thêm lịch hẹn thủ công** (tiêu đề, ngày giờ, nhắc trước 5/15/30/60 phút), nút **✕ xóa** từng sự kiện, nút **📅 Thêm vào Google Calendar** mở link template qua IPC `shell:open-external` (Main chỉ cho phép đúng host `calendar.google.com`).
+3. **`MUSE-08` — Kakao Auto-Follow & Auto-Hide** (`view-manager.ts`, `kakao-docker.ts`):
+   - `ViewManager` giữ trạng thái `kakaoDocked` (IPC `kakao:dock` thành công mới bật); lắng nghe `move`/`resize` của cửa sổ chính → debounce 120ms → `dockKakaoTalk(viewportScreenBounds())` bám theo; `setLayout`/`switchTo`/`removeView` đều đồng bộ lại: ở tab KakaoTalk + viewport hiện → ghép lại, chuyển tab khác hoặc mở Modal → `minimizeKakaoTalk()` (`ShowWindow(h, 6)` trên Windows, ẩn process trên macOS).
+
+**Kiểm chứng:** `npm run typecheck` sạch 3 project, `npm run build` sạch, `out/preload/*.js` vẫn self-contained (2 file, `require` duy nhất là `"electron"`), smoke test boot OK. Kính nhờ Architect nghiệm thu `REV-03`.
