@@ -60,7 +60,9 @@ export class SessionVault {
       if (!removed && !cookie.expirationDate) {
         void this.extendSessionCookie(ses, cookie)
       }
-      void ses.cookies.flushStore()
+      // REV-01 [MEDIUM-05]: no direct flushStore() here — page loads set
+      // dozens of cookies within milliseconds. The debounced snapshot
+      // (scheduleSnapshot -> snapshotCookies) already flushes the store.
       this.scheduleSnapshot(account, ses)
     })
   }

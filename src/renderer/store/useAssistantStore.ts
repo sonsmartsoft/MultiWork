@@ -40,6 +40,14 @@ export const useAssistantStore = create<AssistantState>()((set, get) => ({
     set({ initialized: true })
     const rule = await window.multiworkAPI.getBossRule()
     set({ bossRule: rule })
+    // REV-01 [HIGH-04]: restore the persisted assistant collections so
+    // directives / todos / events survive app restarts.
+    const state = await window.multiworkAPI.getAssistantState()
+    set({
+      directives: state.directives,
+      todos: state.todos,
+      events: state.events
+    })
     unsubscribeDirective?.()
     unsubscribeDirective = window.multiworkAPI.onNewDirective((payload) => {
       get().receiveDirective(payload)
@@ -71,6 +79,8 @@ export const useAssistantStore = create<AssistantState>()((set, get) => ({
       createdAt: new Date().toISOString()
     }
     set((s) => ({ todos: [todo, ...s.todos] }))
+    // REV-01 [HIGH-04]: write UI mutations back to the Main-process store.
+    void window.multiworkAPI.saveTodos(get().todos)
   },
 
   toggleTodo: (id) => {
@@ -79,10 +89,12 @@ export const useAssistantStore = create<AssistantState>()((set, get) => ({
         t.id === id ? { ...t, completed: !t.completed } : t
       )
     }))
+    void window.multiworkAPI.saveTodos(get().todos)
   },
 
   removeTodo: (id) => {
     set((s) => ({ todos: s.todos.filter((t) => t.id !== id) }))
+    void window.multiworkAPI.saveTodos(get().todos)
   },
 
   saveBossRule: async (rule) => {

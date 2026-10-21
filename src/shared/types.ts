@@ -232,7 +232,20 @@ export const IPC_CHANNELS = {
   LAYOUT_SET_CHAT_VISIBLE: 'layout:set-chat-visible',
   // [extension] Boss watchlist persistence (used by the Main-process filter).
   ASSISTANT_GET_BOSS_RULE: 'assistant:get-boss-rule',
-  ASSISTANT_SET_BOSS_RULE: 'assistant:set-boss-rule'
+  ASSISTANT_SET_BOSS_RULE: 'assistant:set-boss-rule',
+  // [extension] REV-01 [HIGH-04]: durable assistant state (directives /
+  // todos / events) persisted in the Main-process JsonStore.
+  ASSISTANT_GET_STATE: 'assistant:get-state',
+  ASSISTANT_SAVE_TODOS: 'assistant:save-todos',
+  ASSISTANT_SAVE_EVENTS: 'assistant:save-events',
+  // [extension] Sprint 2 (MUSE-04): LINE Chrome-extension integration.
+  LINE_GET_STATUS: 'line:get-status',
+  LINE_PICK_EXTENSION_DIR: 'line:pick-extension-dir',
+  // [extension] Sprint 2 (MUSE-05): KakaoTalk native window coordination.
+  KAKAO_GET_STATUS: 'kakao:get-status',
+  KAKAO_LAUNCH: 'kakao:launch',
+  KAKAO_DOCK: 'kakao:dock',
+  KAKAO_UNDOCK: 'kakao:undock'
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
@@ -286,6 +299,37 @@ export interface NewDirectivePayload {
   event?: ScheduleEvent
 }
 
+/** Snapshot of the assistant collections persisted by the Main Process. */
+export interface AssistantStatePayload {
+  directives: BossDirective[]
+  todos: TodoItem[]
+  events: ScheduleEvent[]
+}
+
+/** LINE extension integration state (Sprint 2, MUSE-04). */
+export interface LineStatus {
+  /** A LINE extension folder was found on disk. */
+  available: boolean
+  /** Folder the extension was (or would be) loaded from. */
+  dir?: string
+  /** Chrome extension id once loaded into a session. */
+  extensionId?: string
+  /** Official LINE id on the Chrome Web Store (for the guide page). */
+  webStoreId: string
+}
+
+/** KakaoTalk native integration state (Sprint 2, MUSE-05). */
+export interface KakaoStatus {
+  installed: boolean
+  installPath?: string
+  platform: string
+}
+
+export interface DockResult {
+  ok: boolean
+  reason?: string
+}
+
 // ---------------------------------------------------------------------------
 // Layout constants (docs/SPRINT_1_SPEC_FOR_MUSE.md §MUSE-02.1)
 // ---------------------------------------------------------------------------
@@ -316,6 +360,20 @@ export interface MultiWorkAPI {
   setChatVisible(payload: SetChatVisiblePayload): Promise<void>
   getBossRule(): Promise<BossWatchRule>
   setBossRule(rule: BossWatchRule): Promise<void>
+  /** REV-01 [HIGH-04]: load the persisted assistant collections. */
+  getAssistantState(): Promise<AssistantStatePayload>
+  /** REV-01 [HIGH-04]: persist the full todo list after a UI mutation. */
+  saveTodos(todos: TodoItem[]): Promise<void>
+  /** REV-01 [HIGH-04]: persist the full event list after a UI mutation. */
+  saveEvents(events: ScheduleEvent[]): Promise<void>
+  /** Sprint 2 (MUSE-04): LINE extension status / folder picker. */
+  getLineStatus(): Promise<LineStatus>
+  pickLineExtensionDir(): Promise<LineStatus>
+  /** Sprint 2 (MUSE-05): KakaoTalk native window coordination. */
+  getKakaoStatus(): Promise<KakaoStatus>
+  launchKakao(): Promise<DockResult>
+  dockKakao(): Promise<DockResult>
+  undockKakao(): Promise<DockResult>
   /** Subscribe to unread badge updates. Returns an unsubscribe function. */
   onUnreadUpdated(callback: (payload: UnreadUpdatedPayload) => void): () => void
   /** Subscribe to new boss directives. Returns an unsubscribe function. */

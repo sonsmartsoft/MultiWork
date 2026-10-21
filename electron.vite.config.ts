@@ -19,7 +19,10 @@ export default defineConfig({
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()],
+    // REV-01 [CRITICAL-01]: NO externalizeDepsPlugin here and the preload
+    // sources must not import runtime values from shared modules — sandboxed
+    // preloads cannot require("./chunks/...") at runtime, so each preload
+    // bundle has to be a single self-contained file (verified after build).
     build: {
       rollupOptions: {
         input: {

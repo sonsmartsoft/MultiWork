@@ -1,6 +1,13 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { AccountInstance, BossWatchRule, DEFAULT_BOSS_RULE } from '../shared/types'
+import {
+  AccountInstance,
+  BossDirective,
+  BossWatchRule,
+  DEFAULT_BOSS_RULE,
+  ScheduleEvent,
+  TodoItem
+} from '../shared/types'
 
 /**
  * Local persistence for MultiWork (accounts, boss rule, encrypted cookie
@@ -15,13 +22,23 @@ export interface StoreData {
   activeAccountId: string | null
   /** accountId -> base64(safeStorage ciphertext of the cookie JSON array) */
   cookieVault: Record<string, string>
+  /** REV-01 [HIGH-04]: assistant collections survive restarts. */
+  directives: BossDirective[]
+  todos: TodoItem[]
+  events: ScheduleEvent[]
+  /** Sprint 2 (MUSE-04): user-picked LINE extension folder, if any. */
+  lineExtensionDir: string | null
 }
 
 const DEFAULT_DATA: StoreData = {
   accounts: [],
   bossRule: DEFAULT_BOSS_RULE,
   activeAccountId: null,
-  cookieVault: {}
+  cookieVault: {},
+  directives: [],
+  todos: [],
+  events: [],
+  lineExtensionDir: null
 }
 
 export class JsonStore {
@@ -44,7 +61,11 @@ export class JsonStore {
         accounts: parsed.accounts ?? [],
         bossRule: { ...DEFAULT_BOSS_RULE, ...(parsed.bossRule ?? {}) },
         activeAccountId: parsed.activeAccountId ?? null,
-        cookieVault: parsed.cookieVault ?? {}
+        cookieVault: parsed.cookieVault ?? {},
+        directives: parsed.directives ?? [],
+        todos: parsed.todos ?? [],
+        events: parsed.events ?? [],
+        lineExtensionDir: parsed.lineExtensionDir ?? null
       })
     } catch {
       return new JsonStore(filePath, { ...DEFAULT_DATA })
