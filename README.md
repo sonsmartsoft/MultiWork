@@ -17,15 +17,21 @@
 
 ---
 
-## 📂 Tài liệu nghiên cứu & Kế hoạch (Documentation Index)
+## 📂 Tài liệu nghiên cứu & Điều phối Phát triển (Documentation Index)
 
-Để đội ngũ phát triển và **Muse** cùng nghiên cứu, toàn bộ kế hoạch kỹ thuật chi tiết được chia thành các tài liệu sau:
+Để **Architect (Antigravity)** và **Lead Developer (Muse.ai)** phối hợp phát triển đồng bộ, toàn bộ tài liệu kiến trúc và đặc tả thực thi được tổ chức như sau:
 
+- 🤝 **[Hướng dẫn Phối hợp & Bảng Giao Việc (`docs/AI_COLLABORATION.md`)](./docs/AI_COLLABORATION.md)** *(Đọc đầu tiên)*:
+  - Phân công vai trò: **Architect & Reviewer** (xây kiến trúc, kiểm định code) vs **Muse.ai** (thực thi viết code).
+  - Bảng theo dõi tiến độ (Task Board) và nhật ký Handoff/Review.
+- 📐 **[Đặc tả Kỹ thuật Sprint 1 dành cho Muse.ai (`docs/SPRINT_1_SPEC_FOR_MUSE.md`)](./docs/SPRINT_1_SPEC_FOR_MUSE.md)**:
+  - Yêu cầu chi tiết các module cần Muse.ai viết code trong Sprint 1 (`MUSE-01`, `MUSE-02`, `MUSE-03`).
+  - Hợp đồng giao tiếp IPC (`IPC Contract`) và 6 tiêu chí nghiệm thu (`Acceptance Criteria`).
 - 📋 **[Master Implementation Plan (`docs/PLAN.md`)](./docs/PLAN.md)**:
   - Lựa chọn công nghệ (Electron + BaseWindow/WebContentsView).
   - Kiến trúc quản lý Session không cần đăng nhập lại.
   - Bố cục 3 cột (Sidebar App + Main Chat Viewport + AI To-Do/Schedule Assistant).
-  - Lộ trình phát triển theo từng giai đoạn (Phases 1 → 5).
+  - Lộ trình phát triển theo từng giai đoạn (Phases 1 → 4).
 - 🤖 **[Thiết kế Phân hệ AI Trợ Lý Công Việc (`docs/AI_WORK_ASSISTANT.md`)](./docs/AI_WORK_ASSISTANT.md)**:
   - Cơ chế bắt tin nhắn `@tag` / chỉ thị của Sếp an toàn 100% cho tài khoản cá nhân.
   - Luồng AI tự động dịch thuật, bóc tách `To-Do List`, tạo `Event / Schedule` và nhắc việc thông minh.
