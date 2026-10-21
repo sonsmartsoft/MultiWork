@@ -20,6 +20,7 @@ export type ServiceType =
   | 'line-personal'
   | 'kakaotalk-personal'
   | 'whatsapp'
+  | 'wechat'
   | 'slack'
   | 'discord'
   | 'teams'
@@ -94,6 +95,16 @@ export const SERVICE_CATALOG: Record<ServiceType, ServiceCatalogEntry> = {
     kind: 'web',
     color: '#25d366',
     glyph: 'W'
+  },
+  wechat: {
+    serviceType: 'wechat',
+    label: 'WeChat',
+    // Tencent restricts Web WeChat logins for many newer accounts; when the
+    // account is eligible this is the official web client.
+    url: 'https://web.wechat.com',
+    kind: 'web',
+    color: '#07c160',
+    glyph: 'We'
   },
   slack: {
     serviceType: 'slack',
