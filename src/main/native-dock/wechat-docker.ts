@@ -1,5 +1,6 @@
 import { execFile, spawn } from 'node:child_process'
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import type { DockResult, WeChatStatus } from '../../shared/types'
 
@@ -77,6 +78,10 @@ export function detectWeChat(): WeChatStatus {
 }
 
 const REGISTRY_PROBE = `
+$proc = Get-Process -Name 'WeChat','Weixin' -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($proc -and $proc.Path) { Write-Output $proc.Path }
+$appPaths = Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\WeChat.exe' -ErrorAction SilentlyContinue
+if ($appPaths) { Write-Output $appPaths.'(default)' }
 $roots = @(
   'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
   'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
@@ -266,13 +271,25 @@ function run(file: string, args: string[]): Promise<void> {
   })
 }
 
+/** See kakao-docker.ts: scripts run via a temp .ps1 `-File`, never `-Command`. */
+function writePsFile(script: string): string {
+  const file = path.join(
+    os.tmpdir(),
+    `multiwork-ps-${process.pid}-${Math.random().toString(36).slice(2, 8)}.ps1`
+  )
+  fs.writeFileSync(file, '﻿' + script, 'utf8')
+  return file
+}
+
 function runPowershell(script: string): Promise<void> {
   return new Promise((resolve, reject) => {
+    const file = writePsFile(script)
     execFile(
       'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', file],
       { timeout: 30000 },
       (err) => {
+        fs.rmSync(file, { force: true })
         if (err) reject(err)
         else resolve()
       }
@@ -282,11 +299,13 @@ function runPowershell(script: string): Promise<void> {
 
 function runPowershellCapture(script: string): Promise<string> {
   return new Promise((resolve, reject) => {
+    const file = writePsFile(script)
     execFile(
       'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', file],
       { timeout: 20000, encoding: 'utf8' },
       (err, stdout) => {
+        fs.rmSync(file, { force: true })
         if (err) reject(err)
         else resolve(stdout ?? '')
       }
@@ -307,7 +326,9 @@ function dockErrorReason(err: unknown): string {
   if (msg.includes('chưa chạy')) {
     return 'WeChat chưa chạy — hãy mở WeChat trước.'
   }
-  return msg
+  // Never leak the raw command/script into the UI: keep only the exit code.
+  const code = /code (\d+)/.exec(msg)
+  return `Không điều phối được cửa sổ WeChat (PowerShell lỗi${code ? `, mã ${code[1]}` : ''}). Hãy mở WeChat trước rồi thử lại.`
 }
 
 /** Guide page rendered inside the WeChat chat view. */

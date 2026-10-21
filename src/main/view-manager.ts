@@ -9,13 +9,13 @@ import {
 import type { SelectionActionKind } from './assistant-service'
 import { ExtensionLoader } from './extension-loader'
 import {
-  detectKakaoTalk,
+  detectKakaoTalkDeep,
   dockKakaoTalk,
   kakaoGuidePage,
   minimizeKakaoTalk
 } from './native-dock/kakao-docker'
 import {
-  detectWeChat,
+  detectWeChatDeep,
   dockWeChat,
   minimizeWeChat,
   wechatGuidePage
@@ -250,8 +250,8 @@ export class ViewManager {
       // pattern (Web WeChat is blocked by Tencent for many accounts).
       const guide =
         account.serviceType === 'wechat'
-          ? wechatGuidePage(detectWeChat())
-          : kakaoGuidePage(detectKakaoTalk())
+          ? wechatGuidePage(await detectWeChatDeep())
+          : kakaoGuidePage(await detectKakaoTalkDeep())
       await view.webContents.loadURL(guide).catch(() => undefined)
     } else if (account.homeUrl) {
       await view.webContents.loadURL(account.homeUrl).catch(() => undefined)

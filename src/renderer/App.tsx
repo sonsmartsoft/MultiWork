@@ -26,7 +26,7 @@ import { useAssistantStore } from './store/useAssistantStore'
  * width) and about modal visibility (Acceptance Criteria #2).
  */
 const barButtonClass =
-  'rounded-lg bg-shell-panel2 px-2.5 py-1 text-[12px] text-shell-text hover:ring-1 hover:ring-shell-accentDim'
+  'whitespace-nowrap rounded-lg bg-shell-panel2 px-2.5 py-1 text-[12px] text-shell-text hover:ring-1 hover:ring-shell-accentDim'
 
 /**
  * Sprint 2: contextual controls in the top bar for the two non-web
@@ -75,7 +75,7 @@ function NativeServiceBar({ serviceType }: { serviceType: ServiceType }) {
   if (serviceType === 'kakaotalk-personal') {
     const run = async (fn: () => Promise<DockResult>): Promise<void> => {
       const r = await fn()
-      setNote(r.ok ? '✅' : `⚠️ ${r.reason ?? 'lỗi'}`)
+      setNote(r.ok ? '✅' : `⚠️ ${(r.reason ?? 'lỗi').slice(0, 140)}`)
       setKakaoStatus(await window.multiworkAPI.getKakaoStatus())
     }
     return (
@@ -113,7 +113,7 @@ function NativeServiceBar({ serviceType }: { serviceType: ServiceType }) {
   if (serviceType === 'wechat') {
     const run = async (fn: () => Promise<DockResult>): Promise<void> => {
       const r = await fn()
-      setNote(r.ok ? '✅' : `⚠️ ${r.reason ?? 'lỗi'}`)
+      setNote(r.ok ? '✅' : `⚠️ ${(r.reason ?? 'lỗi').slice(0, 140)}`)
       setWechatStatus(await window.multiworkAPI.getWeChatStatus())
     }
     return (
