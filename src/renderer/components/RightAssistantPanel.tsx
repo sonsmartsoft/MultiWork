@@ -18,9 +18,11 @@ const TABS: { id: TabId; label: string }[] = [
  * Boss directives, To-Do board and Schedule (docs/PLAN.md §4.1).
  */
 export default function RightAssistantPanel({
-  onOpenWatchlist
+  onOpenWatchlist,
+  onOpenAISettings
 }: {
   onOpenWatchlist: () => void
+  onOpenAISettings: () => void
 }) {
   const [tab, setTab] = useState<TabId>('directives')
   const directiveCount = useAssistantStore((s) => s.directives.length)
@@ -81,11 +83,35 @@ export default function RightAssistantPanel({
         </span>
       </button>
 
+      <AISettingsButton onOpen={onOpenAISettings} />
+
       <div className="min-h-0 flex-1">
         {tab === 'directives' && <BossDirectiveFeed />}
         {tab === 'todos' && <TodoBoard />}
         {tab === 'schedule' && <ScheduleCalendar />}
       </div>
     </section>
+  )
+}
+
+/** AI engine settings entry, with a live configured/not-configured hint. */
+function AISettingsButton({ onOpen }: { onOpen: () => void }) {
+  const aiSettings = useAssistantStore((s) => s.aiSettings)
+  const ready =
+    aiSettings !== null &&
+    aiSettings.provider !== 'off' &&
+    aiSettings.hasKey
+  return (
+    <button
+      onClick={onOpen}
+      className="mx-2 mt-2 rounded-lg border border-shell-accentDim bg-shell-panel2 px-3 py-2 text-left text-[12.5px] font-medium text-shell-text hover:ring-1 hover:ring-shell-accent"
+    >
+      🤖 Cài đặt AI — dịch &amp; trích xuất thông minh
+      <span className="block text-[11px] font-normal text-shell-dim">
+        {ready
+          ? '🟢 Đã cấu hình API key — dịch thật + deadline thông minh đang bật'
+          : '⚪ Chưa có API key — đang chạy chế độ quy tắc, chưa dịch được'}
+      </span>
+    </button>
   )
 }

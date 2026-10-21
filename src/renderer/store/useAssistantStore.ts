@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import type {
+  AISettingsUpdate,
+  AISettingsView,
   BossDirective,
   BossWatchRule,
   NewDirectivePayload,
@@ -13,6 +15,7 @@ interface AssistantState {
   todos: TodoItem[]
   events: ScheduleEvent[]
   bossRule: BossWatchRule | null
+  aiSettings: AISettingsView | null
   initialized: boolean
   setPanelOpen: (open: boolean) => void
   init: () => Promise<void>
@@ -21,9 +24,11 @@ interface AssistantState {
   toggleTodo: (id: string) => void
   removeTodo: (id: string) => void
   saveBossRule: (rule: BossWatchRule) => Promise<void>
+  saveAISettings: (update: AISettingsUpdate) => Promise<AISettingsView>
 }
 
 let unsubscribeDirective: (() => void) | null = null
+let unsubscribeState: (() => void) | null = null
 
 export const useAssistantStore = create<AssistantState>()((set, get) => ({
   panelOpen: true,
@@ -31,6 +36,7 @@ export const useAssistantStore = create<AssistantState>()((set, get) => ({
   todos: [],
   events: [],
   bossRule: null,
+  aiSettings: null,
   initialized: false,
 
   setPanelOpen: (open) => set({ panelOpen: open }),
@@ -52,6 +58,20 @@ export const useAssistantStore = create<AssistantState>()((set, get) => ({
     unsubscribeDirective = window.multiworkAPI.onNewDirective((payload) => {
       get().receiveDirective(payload)
     })
+    // AI enrichment in the Main process pushes the full refreshed state
+    // (translated bodies, smart deadlines) whenever it lands.
+    unsubscribeState?.()
+    unsubscribeState = window.multiworkAPI.onAssistantStateUpdated(
+      (state) => {
+        set({
+          directives: state.directives,
+          todos: state.todos,
+          events: state.events
+        })
+      }
+    )
+    const ai = await window.multiworkAPI.getAISettings()
+    set({ aiSettings: ai })
   },
 
   receiveDirective: (payload) => {
@@ -100,5 +120,11 @@ export const useAssistantStore = create<AssistantState>()((set, get) => ({
   saveBossRule: async (rule) => {
     await window.multiworkAPI.setBossRule(rule)
     set({ bossRule: rule })
+  },
+
+  saveAISettings: async (update) => {
+    const view = await window.multiworkAPI.setAISettings(update)
+    set({ aiSettings: view })
+    return view
   }
 }))

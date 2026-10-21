@@ -8,6 +8,7 @@ import {
   ServiceType
 } from '../shared/types'
 import AddServiceModal from './components/AddServiceModal'
+import AISettingsModal from './components/AISettingsModal'
 import BossWatchlistModal from './components/BossWatchlistModal'
 import RightAssistantPanel from './components/RightAssistantPanel'
 import Sidebar from './components/Sidebar'
@@ -112,6 +113,7 @@ export default function App() {
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [watchlistOpen, setWatchlistOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(false)
 
   const accounts = useAccountsStore((s) => s.accounts)
   const activeId = useAccountsStore((s) => s.activeId)
@@ -122,7 +124,7 @@ export default function App() {
   const initAssistant = useAssistantStore((s) => s.init)
 
   const active = accounts.find((a) => a.id === activeId) ?? null
-  const modalOpen = addOpen || watchlistOpen
+  const modalOpen = addOpen || watchlistOpen || aiOpen
 
   useEffect(() => {
     void initAccounts()
@@ -226,6 +228,7 @@ export default function App() {
         {panelOpen && (
           <RightAssistantPanel
             onOpenWatchlist={() => setWatchlistOpen(true)}
+            onOpenAISettings={() => setAiOpen(true)}
           />
         )}
       </div>
@@ -234,6 +237,7 @@ export default function App() {
       {watchlistOpen && (
         <BossWatchlistModal onClose={() => setWatchlistOpen(false)} />
       )}
+      {aiOpen && <AISettingsModal onClose={() => setAiOpen(false)} />}
     </div>
   )
 }
