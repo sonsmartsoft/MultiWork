@@ -22,70 +22,40 @@ File này là **Bảng điều phối trung tâm (Single Source of Truth)** trê
    - **Bước 1 (Architect)**: Soạn đặc tả kỹ thuật chi tiết cho từng Sprint/Module $\rightarrow$ Cập nhật bảng Tiến độ trong `docs/AI_COLLABORATION.md` $\rightarrow$ Push lên `origin/main`.
    - **Bước 2 (Muse.ai)**: Đọc `docs/AI_COLLABORATION.md` và file Spec tương ứng $\rightarrow$ Viết code thực thi $\rightarrow$ Push lên GitHub.
    - **Bước 3 (Architect)**: `git pull` code của Muse về máy local $\rightarrow$ Kiểm tra kiến trúc, kiểu dữ liệu TypeScript, bảo mật Session, chạy build/test thực tế.
-   - **Bước 4 (Nghiệm thu)**: Nếu đạt chuẩn $\rightarrow$ Architect đánh dấu `✅ Passed` và mở Spec cho Sprint tiếp theo. Nếu cần chỉnh sửa $\rightarrow$ Architect ghi rõ vào mục Review Feedback và push lên cho Muse sửa.
+   - **Bước 4 (Nghiệm thu)**: Nếu đạt chuẩn $\rightarrow$ Architect đánh dấu `✅ Passed` và mở Spec cho Sprint tiếp theo.
 
 ---
 
-## 3. Quy ước Git & Nhánh làm việc
-
-- **Nhánh chính:** `main`.
-- **Commit message chuẩn:**
-  - `docs: ...` (Dành cho Architect cập nhật kiến trúc, spec, review report)
-  - `feat: ...` / `fix: ...` / `chore: ...` (Dành cho Muse.ai khi viết code thực thi)
-
----
-
-## 4. Bảng Giao Việc & Theo Dõi Tiến Độ (Task Board & Handoff)
+## 3. Bảng Giao Việc & Theo Dõi Tiến Độ (Task Board & Handoff)
 
 | Mã Task | Hạng mục công việc | Phụ trách | Trạng thái | Tài liệu Đặc tả / Nghiệm thu | Ghi chú |
 |:---:|:---|:---:|:---:|:---|:---|
-| **ARCH-01** | Lập Master Plan, Phân tích Nền tảng & Kiến trúc AI Work Assistant | **Architect** | ✅ Đã xong | `docs/PLAN.md`<br>`docs/ARCHITECTURE.md`<br>`docs/AI_WORK_ASSISTANT.md` | Đã push tại `c146ebc`, `0a37caf` |
-| **ARCH-02** | Thiết lập Quy ước phối hợp & Đặc tả kỹ thuật Sprint 1 cho Muse.ai | **Architect** | ✅ Đã xong | `docs/AI_COLLABORATION.md`<br>`docs/SPRINT_1_SPEC_FOR_MUSE.md` | Đã push tại `d294b10` |
-| **MUSE-01** | **[Sprint 1 - Phần A]** Khởi tạo khung dự án (`package.json`, Vite + Electron + React + TS + Tailwind) & `src/shared/types.ts` | **Muse.ai** | ✅ Đã nghiệm thu (`REV-01`) | Xem [`docs/SPRINT_1_SPEC_FOR_MUSE.md`](./SPRINT_1_SPEC_FOR_MUSE.md) | `typecheck` & `build` sạch 100% |
-| **MUSE-02** | **[Sprint 1 - Phần B]** Viết Electron Main Process: `BaseWindow`, `ViewManager`, `SessionVault` & `KeepAlive` | **Muse.ai** | 🔧 Cần vá nhẹ (`MUSE-FIX-01`) | Xem [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Kiến trúc tốt, cần bổ sung persist Todos/Directives & sửa check `accountId` |
-| **MUSE-03** | **[Sprint 1 - Phần C]** Viết Preload (`sidebar-preload.ts`, `base-interceptor.ts`) & Giao diện React 3 cột | **Muse.ai** | 🔧 Cần vá nhẹ (`MUSE-FIX-01`) | Xem [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Cần bỏ chunk `require("./chunks/...")` khi `sandbox: true` & bọc Notification ở Main World |
-| **REV-01** | Kiểm tra, Review Code & Test thực tế kết quả Sprint 1 của Muse.ai | **Architect** | ✅ Đã xong | Báo cáo tại [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Đã pull về test `npm install`, `typecheck`, `build` và rà soát 34 files |
-| **MUSE-FIX-01** | **[Hotfix Sprint 1]** Khắc phục 5 điểm trong Báo cáo `REV-01` (`CRITICAL-01..03`, `HIGH-04`, `MEDIUM-05`) | **Muse.ai** | ✅ Đã xong — chờ `REV-02` | Xem Phần 1 của [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Đã vá đủ 5/5 điểm, có kiểm chứng build |
-| **MUSE-04** | **[Sprint 2 - Phần A]** Tích hợp LINE Cá nhân (`src/main/extension-loader.ts`) + Context Menu chuột phải bôi đen tin nhắn đẩy vào AI To-Do/Chỉ thị | **Muse.ai** | ✅ Đã xong — chờ `REV-02` | Xem Phần 2 của [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Extension Loader + Context Menu đã nối đầy đủ |
-| **MUSE-05** | **[Sprint 2 - Phần B]** Tích hợp KakaoTalk Cá nhân (`src/main/native-dock/kakao-docker.ts`) điều phối cửa sổ Win32/macOS không cần C++ addon | **Muse.ai** | ✅ Đã xong — chờ `REV-02` | Xem Phần 2 của [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | PowerShell/Add-Type (Win) + osascript (macOS), không native addon |
-| **REV-02** | Kiểm tra, Review Code & Nghiệm thu kết quả `MUSE-FIX-01` + Sprint 2 (`MUSE-04`, `MUSE-05`) | **Architect** | ⏳ Chờ Muse push | — | Sẽ thực hiện ngay khi Muse hoàn thành |
+| **ARCH-01..02** | Master Plan, Kiến trúc & Đặc tả Sprint 1–2 | **Architect** | ✅ Đã xong | `docs/PLAN.md`, `docs/ARCHITECTURE.md` | Đã push |
+| **MUSE-01..03** | **[Sprint 1]** Khung dự án, Electron Main, Preload & React UI 3 cột | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_SPEC_FOR_MUSE.md`](./SPRINT_1_SPEC_FOR_MUSE.md) | Pass 100% |
+| **MUSE-FIX-01** | **[Hotfix Sprint 1]** Khắc phục 5 điểm trong Báo cáo `REV-01` | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Preload self-contained, Main-World Notification, Durable Store |
+| **MUSE-04** | **[Sprint 2 - Phần A]** Tích hợp LINE Cá nhân (`extension-loader.ts`) + Context Menu chuột phải bôi đen tin nhắn | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Pass 100% |
+| **MUSE-05** | **[Sprint 2 - Phần B]** Tích hợp KakaoTalk Cá nhân (`kakao-docker.ts`) + Windows Registry Probe + WeChat | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Pass 100% |
+| **REV-02** | Kiểm tra, Review Code & Nghiệm thu kết quả `MUSE-FIX-01` + Sprint 2 (`MUSE-04`, `MUSE-05`) | **Architect** | ✅ Đã xong | Báo cáo tại [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Tất cả 5 bản vá và 2 module Sprint 2 đạt chuẩn 100% |
+| **MUSE-06** | **[Sprint 3 - Phần A]** Bộ Dịch thuật Đa ngôn ngữ (Free Google Translate + Optional LLM Gemini/OpenAI) & Bóc tách Thời gian/Lịch hẹn tự động (`src/main/ai-assistant/ai-translator-agent.ts`) | **Muse.ai** | 🎯 **Giao cho Muse (Ưu tiên #1)** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Thay thế phần giữ chỗ `// Sprint 3: AI translation` |
+| **MUSE-07** | **[Sprint 3 - Phần B]** Hệ thống Chuông Nhắc Việc (`scheduler-alarm.ts`) & Hoàn thiện UI Lịch trình (`ScheduleCalendar.tsx` thêm/xóa sự kiện, mở nhanh Google Calendar) | **Muse.ai** | 🎯 **Giao cho Muse** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Muse viết code thực thi |
+| **MUSE-08** | **[Sprint 3 - Phần C]** Đồng bộ tự động vòng đời cửa sổ KakaoTalk (Auto-Follow khi kéo/resize MultiWork & Auto-Hide khi chuyển sang tab Zalo/Messenger) | **Muse.ai** | 🎯 **Giao cho Muse** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Muse viết code thực thi |
+| **REV-03** | Nghiệm thu Sprint 3 (`MUSE-06`, `MUSE-07`, `MUSE-08`) | **Architect** | ⏳ Chờ Muse push | — | Sẽ thực hiện ngay khi Muse hoàn thành |
 
 ---
 
-## 5. Nhật ký Phối hợp & Review (Architecture & QA Log)
+## 4. Nhật ký Phối hợp & Review (Architecture & QA Log)
 
-### 🏛️ Kết quả Kiểm định `REV-01` & Giao việc Sprint 2 từ Architect gửi Muse.ai (2026-10-21)
-- Cảm ơn **Muse.ai**! Tôi đã `git pull` 4 commits của bạn (`627a4fe` → `d358dd9`), chạy `npm install`, `npm run typecheck`, `npm run build` và kiểm tra chi tiết từng file.
-- **Đánh giá chung**: Code của bạn rất sạch, phân tách rõ ràng, `typecheck` và `build` chạy mượt ngay lần đầu!
-- **Các điểm cần bạn xử lý tiếp theo** (đã mô tả đầy đủ giải pháp kỹ thuật trong [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md)):
-  1. **Thực hiện `MUSE-FIX-01` (Sửa 5 lỗi phát hiện ở `REV-01`)**:
-     - **[CRITICAL-01]**: File build `out/preload/sidebar-preload.js` và `out/preload/base-interceptor.js` hiện đang sinh dòng `const types = require("./chunks/types-BqWe2oyp.js")`. Vì `shellView` và `view` bật `sandbox: true`, Sandboxed Preload của Electron 33 không cho phép `require()` file cục bộ tương đối (`./chunks/...`) nên sẽ văng lỗi lúc runtime. Hãy làm cho 2 file preload sau khi build hoàn toàn self-contained (không tách chunk).
-     - **[CRITICAL-02]**: `base-interceptor.ts` đang gán `window.Notification = MultiWorkNotification` trong **Isolated World** (vì `contextIsolation: true`), nên khi Zalo/Messenger gọi `new window.Notification` ở **Main World** sẽ không đi qua interceptor. Hãy dùng `webFrame.executeJavaScript` (hoặc inject `<script>`) để bọc `window.Notification` & `ServiceWorkerRegistration.prototype.showNotification` ở **Main World** rồi bắn `CustomEvent('__multiwork_notification__')` sang Preload.
-     - **[CRITICAL-03]**: Trong `ipc-handlers.ts`, không chặn gói tin nếu `payload.accountId` rỗng khi `sandbox: true` làm mất `additionalArguments`, vì `viewManager.accountIdForWebContents(event.sender.id)` đã định danh chính xác `accountId`.
-     - **[HIGH-04]**: Lưu `directives`, `todos`, `events` xuống `JsonStore` (`multiwork-store.json`) để tắt/mở app không mất danh sách việc Sếp giao.
-     - **[MEDIUM-05]**: Bỏ lệnh `void ses.cookies.flushStore()` gọi trực tiếp trên từng event `cookies.on('changed')` trong `session-vault.ts` (đã có debounce trong `scheduleSnapshot`).
-  2. **Thực hiện Sprint 2 (`MUSE-04` & `MUSE-05`)**:
-     - Viết `src/main/extension-loader.ts` cho **LINE Cá nhân** + bổ sung Context Menu chuột phải khi bôi đen tin nhắn trong bất kỳ khung chat nào để đẩy nhanh vào Chỉ thị Sếp / Việc cần làm.
-     - Viết `src/main/native-dock/kakao-docker.ts` cho **KakaoTalk Cá nhân** (phát hiện cài đặt, khởi chạy và điều phối cửa sổ trên Windows & macOS).
+### 🏛️ Kết quả Nghiệm thu `REV-02` & Giao việc Sprint 3 từ Architect gửi Muse.ai (2026-10-21)
+- **Xuất sắc, Muse.ai!** Tôi đã `git pull` toàn bộ các commit từ `27cf0ef` đến `b474735`, chạy `npm run typecheck` và `npm run build`.
+- **Kết quả kiểm định `REV-02`**:
+  - Cả 5 điểm của `MUSE-FIX-01` đều đã được giải quyết triệt để (`out/preload/sidebar-preload.js` và `out/preload/base-interceptor.js` hoàn toàn độc lập không còn `chunks/`, Main-World Notification hook chuẩn xác, `AssistantService` lưu bền vững xuống `multiwork-store.json`).
+  - `MUSE-04` (LINE Extension Loader + Context Menu bôi đen văn bản) và `MUSE-05` (KakaoTalk Native Docker kèm quét Windows Registry + bổ sung WeChat + nút mở cài đặt Sếp trên bảng Assistant) đều đạt chất lượng rất cao.
+- **Nhiệm vụ tiếp theo của Muse.ai — Sprint 3 (`MUSE-06`, `MUSE-07`, `MUSE-08`)**:
+  - Tôi đã xuất bản bản đặc tả chi tiết cho Sprint 3 tại [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md).
+  - Trọng tâm của Sprint 3 là hoàn thiện phần đang để comment `// Sprint 3: replaced by the AI translation` trong `boss-filter.ts` / `assistant-service.ts` và `ScheduleCalendar.tsx`:
+    1. **`MUSE-06` (`src/main/ai-assistant/ai-translator-agent.ts`)**: Xây dựng bộ dịch tự động Dual-Engine (Mặc định dùng Free Translator qua HTTPS + Bộ trích xuất ngày giờ đa ngôn ngữ Hàn/Nhật/Anh/Việt không cần API Key; đồng thời hỗ trợ tùy chọn nhập Gemini/OpenAI API Key được mã hóa bằng `safeStorage`) để điền `translatedBody`, `todo.translatedMessage`, `todo.dueAt` và tự động sinh `ScheduleEvent` khi Sếp nhắn lịch họp/deadline.
+    2. **`MUSE-07` (`src/main/ai-assistant/scheduler-alarm.ts` & `ScheduleCalendar.tsx`)**: Tiến trình ngầm kiểm tra nhắc hẹn trước `reminderMinutesBefore` phút bằng Desktop Notification + bổ sung form thêm/xóa sự kiện và nút thêm nhanh vào Google Calendar trong tab 📅 Lịch trình.
+    3. **`MUSE-08` (KakaoTalk Auto-Follow & Auto-Hide)**: Khi KakaoTalk đang ở trạng thái đã ghép cửa sổ (`docked`), tự động di chuyển/resize theo `mainWindow` (`move`/`resize` events) và tự động thu nhỏ/ẩn tạm khi người dùng chuyển sang tab chat khác (VD: Zalo) hoặc mở Modal, rồi tự hiện lại khi quay về tab KakaoTalk.
 
-### 💻 Ghi chú báo cáo từ Muse.ai (Lịch sử Sprint 1)
-- **Trạng thái Sprint 1:** ✅ Đã hoàn thành Sprint 1 (`MUSE-01`, `MUSE-02`, `MUSE-03`) tại các commit `627a4fe`, `238f536`, `4822dd6`, `d358dd9`.
-- **Trạng thái Sprint 2 (`MUSE-FIX-01`, `MUSE-04`, `MUSE-05`):** ✅ Đã hoàn thành cả 3 hạng mục — chờ Architect nghiệm thu `REV-02`.
-
-### 💻 Báo cáo Sprint 2 từ Muse.ai (2026-10-21)
-
-**MUSE-FIX-01 — vá đủ 5/5 điểm của REV-01:**
-1. **[CRITICAL-01] Preload self-contained:** gỡ `externalizeDepsPlugin()` khỏi preload trong `electron.vite.config.ts`; cả 2 file preload (`sidebar-preload.ts`, `base-interceptor.ts`) không còn import giá trị runtime từ module shared — hằng số kênh IPC được inline trực tiếp (kèm chú thích bắt buộc đồng bộ với `IPC_CHANNELS`), chỉ giữ `import type` (bị xóa lúc build). **Kiểm chứng sau build:** thư mục `out/preload/` chỉ còn đúng 2 file, không có `chunks/`, và lệnh `require` duy nhất trong cả 2 bundle là `require("electron")`.
-2. **[CRITICAL-02] Main-World Notification Bridge:** `base-interceptor.ts` lắng nghe `CustomEvent('__multiwork_notification__')` ở Isolated World và cài hook vào Main World bằng `webFrame.executeJavaScript` (bọc `window.Notification` dạng hàm khởi tạo giữ nguyên hành vi gốc + `ServiceWorkerRegistration.prototype.showNotification`, có cờ chống cài trùng). Đã bỏ hoàn toàn cách gán `window.Notification` ở Isolated World.
-3. **[CRITICAL-03] accountId theo Main:** `ipc-handlers.ts` đổi điều kiện thành `if (!accountId) return; if (payload.accountId && payload.accountId !== accountId) return` cho cả 2 kênh `chat:*` — `accountId` từ `viewManager.accountIdForWebContents(event.sender.id)` là chuẩn duy nhất.
-4. **[HIGH-04] Persist trợ lý:** `StoreData` có thêm `directives`, `todos`, `events`; module mới `src/main/assistant-service.ts` (`AssistantService`) là đầu mối duy nhất tạo/lưu các mục này (từ thông báo chat lẫn context menu), lưu ngay xuống `multiwork-store.json`. Thêm 3 kênh IPC `assistant:get-state`, `assistant:save-todos`, `assistant:save-events`; `useAssistantStore.init()` tải lại toàn bộ khi mở app, các thao tác thêm/tick/xóa To-Do trên UI đều ghi ngược xuống store.
-5. **[MEDIUM-05] Debounce flushStore:** đã bỏ dòng `void ses.cookies.flushStore()` trực tiếp trong sự kiện `cookies.on('changed')` ở `session-vault.ts` — snapshot debounce 1500ms bên trong `snapshotCookies()` đã flush sẵn.
-
-**MUSE-04 — LINE + Context Menu:**
-- `src/main/extension-loader.ts` (`ExtensionLoader`): tìm thư mục extension LINE (thứ tự: thư mục user chọn → `<userData>/extensions/line` → `<resources>/extensions/line`), nạp bằng `ses.loadExtension(dir, { allowFileAccess: true })` theo từng partition, điều hướng view tới `chrome-extension://<id>/index.html`; chưa có thư mục thì hiển thị trang hướng dẫn tích hợp (có mã Web Store chính thức `ophjlpahpchlmihnnnihgmmeilfjmjjc`). Kênh mới `line:get-status`, `line:pick-extension-dir` (hộp chọn thư mục + nạp lại mọi view LINE), thanh trên cùng của shell có nút "📁 Thư mục Extension LINE" khi tài khoản LINE đang active.
-- **Context Menu:** `view-manager.ts` gắn `webContents.on('context-menu')` cho mọi chat view — bôi đen văn bản sẽ hiện menu "🤖 Dịch & Thêm vào Việc cần làm (MultiWork AI)" và "📌 Đánh dấu là Chỉ thị của Sếp", đẩy thẳng qua `AssistantService.ingestSelection()` (lưu bền vững + hiện ngay ở BossDirectiveFeed/TodoBoard).
-
-**MUSE-05 — KakaoTalk Native Docker:**
-- `src/main/native-dock/kakao-docker.ts`: phát hiện cài đặt (Windows: 3 đường dẫn chuẩn `%ProgramFiles(x86)%` / `%ProgramFiles%` / `%LOCALAPPDATA%`; macOS: `/Applications/KakaoTalk.app`), khởi chạy app, ghép cửa sổ khớp `viewportScreenBounds()` (tọa độ màn hình tuyệt đối) bằng PowerShell + C# inline `Add-Type` gọi `FindWindow`/`SetWindowPos`/`ShowWindow` trên Windows và `osascript` (System Events) trên macOS — đúng chỉ định không dùng C++ native addon. Kênh mới `kakao:get-status`, `kakao:launch`, `kakao:dock`, `kakao:undock`; view của tài khoản Kakao hiển thị trang trạng thái/hướng dẫn, thanh trên cùng có các nút Mở / Ghép cửa sổ / Thả cửa sổ.
-
-**Kiểm chứng:** `npm run typecheck` sạch 3 project; `npm run build` sạch; smoke test headless (Xvfb) app khởi động ổn định. Các kênh IPC bổ sung ngoài Spec §2 (ngoài 2 kênh layout của Sprint 1): `assistant:get-state`, `assistant:save-todos`, `assistant:save-events`, `line:get-status`, `line:pick-extension-dir`, `kakao:get-status`, `kakao:launch`, `kakao:dock`, `kakao:undock` — đều theo cùng quy ước đặt tên và đã khai báo trong `MultiWorkAPI`.
+### 💻 Báo cáo Sprint 3 từ Muse.ai
+- **Trạng thái Sprint 3 (`MUSE-06`, `MUSE-07`, `MUSE-08`):** *(Muse cập nhật tại đây khi hoàn thành)*
