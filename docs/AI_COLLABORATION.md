@@ -32,30 +32,28 @@ File này là **Bảng điều phối trung tâm (Single Source of Truth)** trê
 |:---:|:---|:---:|:---:|:---|:---|
 | **ARCH-01..02** | Master Plan, Kiến trúc & Đặc tả Sprint 1–2 | **Architect** | ✅ Đã xong | `docs/PLAN.md`, `docs/ARCHITECTURE.md` | Đã push |
 | **MUSE-01..03** | **[Sprint 1]** Khung dự án, Electron Main, Preload & React UI 3 cột | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_SPEC_FOR_MUSE.md`](./SPRINT_1_SPEC_FOR_MUSE.md) | Pass 100% |
-| **MUSE-FIX-01** | **[Hotfix Sprint 1]** Khắc phục 5 điểm trong Báo cáo `REV-01` | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Preload self-contained, Main-World Notification, Durable Store |
+| **MUSE-FIX-01** | **[Hotfix Sprint 1]** Khắc phục 5 điểm trong Báo cáo `REV-01` | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Pass 100% |
 | **MUSE-04** | **[Sprint 2 - Phần A]** Tích hợp LINE Cá nhân (`extension-loader.ts`) + Context Menu chuột phải bôi đen tin nhắn | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Pass 100% |
 | **MUSE-05** | **[Sprint 2 - Phần B]** Tích hợp KakaoTalk Cá nhân (`kakao-docker.ts`) + Windows Registry Probe + WeChat | **Muse.ai** | ✅ Đã nghiệm thu (`REV-02`) | [`docs/SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md`](./SPRINT_1_REVIEW_AND_SPRINT_2_SPEC.md) | Pass 100% |
-| **REV-02** | Kiểm tra, Review Code & Nghiệm thu kết quả `MUSE-FIX-01` + Sprint 2 (`MUSE-04`, `MUSE-05`) | **Architect** | ✅ Đã xong | Báo cáo tại [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Tất cả 5 bản vá và 2 module Sprint 2 đạt chuẩn 100% |
-| **MUSE-06** | **[Sprint 3 - Phần A]** Bộ Dịch thuật Đa ngôn ngữ (Free Google Translate + Optional LLM Gemini/OpenAI) & Bóc tách Thời gian/Lịch hẹn tự động (`src/main/ai-assistant/ai-translator-agent.ts`) | **Muse.ai** | 🎯 **Giao cho Muse (Ưu tiên #1)** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Thay thế phần giữ chỗ `// Sprint 3: AI translation` |
-| **MUSE-07** | **[Sprint 3 - Phần B]** Hệ thống Chuông Nhắc Việc (`scheduler-alarm.ts`) & Hoàn thiện UI Lịch trình (`ScheduleCalendar.tsx` thêm/xóa sự kiện, mở nhanh Google Calendar) | **Muse.ai** | 🎯 **Giao cho Muse** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Muse viết code thực thi |
-| **MUSE-08** | **[Sprint 3 - Phần C]** Đồng bộ tự động vòng đời cửa sổ KakaoTalk (Auto-Follow khi kéo/resize MultiWork & Auto-Hide khi chuyển sang tab Zalo/Messenger) | **Muse.ai** | 🎯 **Giao cho Muse** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Muse viết code thực thi |
-| **REV-03** | Nghiệm thu Sprint 3 (`MUSE-06`, `MUSE-07`, `MUSE-08`) | **Architect** | ⏳ Chờ Muse push | — | Sẽ thực hiện ngay khi Muse hoàn thành |
+| **REV-02** | Kiểm tra, Review Code & Nghiệm thu kết quả `MUSE-FIX-01` + Sprint 2 (`MUSE-04`, `MUSE-05`) | **Architect** | ✅ Đã xong | Báo cáo tại [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Tất cả các hạng mục đạt chuẩn 100% |
+| **MUSE-06.A** | **[Sprint 3]** Tích hợp Google Gemini AI Engine + `safeStorage` mã hóa key + `AISettingsModal.tsx` | **Muse.ai** | ✅ Đã xong (`9f7c30f`, `71b06a5`) | Xem `src/main/ai-service.ts` & `AISettingsModal.tsx` | Đã test typecheck & build sạch |
+| **MUSE-06.B** | **[Sprint 3]** Fallback Dịch Miễn Phí (Google Translate HTTPS) khi chưa có API Key + Tự động trích xuất Lịch hẹn (`ScheduleEvent`) từ tin nhắn Sếp | **Muse.ai** | 🎯 **Đang thực hiện** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Đảm bảo app luôn dịch được kể cả khi chưa nhập key |
+| **MUSE-07** | **[Sprint 3]** Hệ thống Chuông Nhắc Việc ngầm (`scheduler-alarm.ts`) & Nâng cấp tab 📅 Lịch trình (`ScheduleCalendar.tsx`) | **Muse.ai** | 🎯 **Giao cho Muse** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Bắn Desktop Notification trước 15p + Thêm vào Google Calendar |
+| **MUSE-08** | **[Sprint 3]** Đồng bộ tự động cửa sổ KakaoTalk (Auto-Follow khi resize/move & Auto-Hide khi đổi tab Zalo) | **Muse.ai** | 🎯 **Giao cho Muse** | Xem chi tiết trong [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md) | Giữ trải nghiệm cửa sổ thống nhất |
+| **REV-03** | Nghiệm thu toàn diện Sprint 3 (`MUSE-06..08`) | **Architect** | ⏳ Chờ Muse hoàn tất | — | Sẽ thực hiện ngay khi Muse push |
 
 ---
 
 ## 4. Nhật ký Phối hợp & Review (Architecture & QA Log)
 
-### 🏛️ Kết quả Nghiệm thu `REV-02` & Giao việc Sprint 3 từ Architect gửi Muse.ai (2026-10-21)
-- **Xuất sắc, Muse.ai!** Tôi đã `git pull` toàn bộ các commit từ `27cf0ef` đến `b474735`, chạy `npm run typecheck` và `npm run build`.
-- **Kết quả kiểm định `REV-02`**:
-  - Cả 5 điểm của `MUSE-FIX-01` đều đã được giải quyết triệt để (`out/preload/sidebar-preload.js` và `out/preload/base-interceptor.js` hoàn toàn độc lập không còn `chunks/`, Main-World Notification hook chuẩn xác, `AssistantService` lưu bền vững xuống `multiwork-store.json`).
-  - `MUSE-04` (LINE Extension Loader + Context Menu bôi đen văn bản) và `MUSE-05` (KakaoTalk Native Docker kèm quét Windows Registry + bổ sung WeChat + nút mở cài đặt Sếp trên bảng Assistant) đều đạt chất lượng rất cao.
-- **Nhiệm vụ tiếp theo của Muse.ai — Sprint 3 (`MUSE-06`, `MUSE-07`, `MUSE-08`)**:
-  - Tôi đã xuất bản bản đặc tả chi tiết cho Sprint 3 tại [`docs/SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md`](./SPRINT_2_REVIEW_AND_SPRINT_3_SPEC.md).
-  - Trọng tâm của Sprint 3 là hoàn thiện phần đang để comment `// Sprint 3: replaced by the AI translation` trong `boss-filter.ts` / `assistant-service.ts` và `ScheduleCalendar.tsx`:
-    1. **`MUSE-06` (`src/main/ai-assistant/ai-translator-agent.ts`)**: Xây dựng bộ dịch tự động Dual-Engine (Mặc định dùng Free Translator qua HTTPS + Bộ trích xuất ngày giờ đa ngôn ngữ Hàn/Nhật/Anh/Việt không cần API Key; đồng thời hỗ trợ tùy chọn nhập Gemini/OpenAI API Key được mã hóa bằng `safeStorage`) để điền `translatedBody`, `todo.translatedMessage`, `todo.dueAt` và tự động sinh `ScheduleEvent` khi Sếp nhắn lịch họp/deadline.
-    2. **`MUSE-07` (`src/main/ai-assistant/scheduler-alarm.ts` & `ScheduleCalendar.tsx`)**: Tiến trình ngầm kiểm tra nhắc hẹn trước `reminderMinutesBefore` phút bằng Desktop Notification + bổ sung form thêm/xóa sự kiện và nút thêm nhanh vào Google Calendar trong tab 📅 Lịch trình.
-    3. **`MUSE-08` (KakaoTalk Auto-Follow & Auto-Hide)**: Khi KakaoTalk đang ở trạng thái đã ghép cửa sổ (`docked`), tự động di chuyển/resize theo `mainWindow` (`move`/`resize` events) và tự động thu nhỏ/ẩn tạm khi người dùng chuyển sang tab chat khác (VD: Zalo) hoặc mở Modal, rồi tự hiện lại khi quay về tab KakaoTalk.
-
-### 💻 Báo cáo Sprint 3 từ Muse.ai
-- **Trạng thái Sprint 3 (`MUSE-06`, `MUSE-07`, `MUSE-08`):** *(Muse cập nhật tại đây khi hoàn thành)*
+### 🏛️ Ghi chú từ Architect gửi Muse.ai (Tiếp tục Sprint 3)
+- **Đánh giá cao Muse.ai:** Hai commit `9f7c30f` và `71b06a5` của bạn đã xây dựng xuất sắc khung kết nối **Google Gemini (`ai-service.ts`)** với cơ chế bảo mật khóa `safeStorage` và giao diện cấu hình `AISettingsModal.tsx`! Build và typecheck chạy rất mượt.
+- **Để hoàn thiện 100% Sprint 3 (theo đúng yêu cầu của người dùng về Dịch chỉ thị Sếp + Đặt Event/Schedule), hãy tiếp tục thực hiện 3 điểm sau**:
+  1. **`MUSE-06.B` (Free Translation Fallback + Event Extraction)**:
+     - Trong `ai-service.ts`: Khi người dùng **chưa nhập Gemini API Key** (hoặc chọn `provider === 'off'`), thêm hàm fallback gọi HTTPS Google Translate công khai (`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=...`) để tin nhắn của Sếp / bôi đen chuột phải vẫn được tự động dịch sang tiếng Việt mà không bắt buộc người dùng phải có thẻ thanh toán mua API key.
+     - Trong `ai-service.ts` và `assistant-service.ts`: Bổ sung hàm bóc tách **Lịch hẹn / Cuộc họp (`ScheduleEvent`)** khi Sếp nhắn thời gian (VD: *"mai 10h họp"* hay *"오후 3시에 회의"*) để tự động thêm vào `store.data.events`.
+  2. **`MUSE-07` (Hệ thống Chuông Nhắc Lịch Trình)**:
+     - Tạo `src/main/ai-assistant/scheduler-alarm.ts`: Chạy ngầm định kỳ mỗi 30s để kiểm tra `store.data.events` (và `todos` có `dueAt`), bắn `new Notification({ title: '⏰ Nhắc việc MultiWork', body: ... }).show()` trước giờ hẹn 15 phút.
+     - Nâng cấp `ScheduleCalendar.tsx`: Cho phép người dùng bấm nút `+ Thêm lịch hẹn thủ công`, nút `✕` để xóa sự kiện, và nút `📅 Thêm vào Google Calendar` (mở link template Google Calendar).
+  3. **`MUSE-08` (KakaoTalk Auto-Follow & Auto-Hide)**:
+     - Trong `view-manager.ts` và `kakao-docker.ts`: Khi cửa sổ KakaoTalk đang ở chế độ ghép (`docked`), lắng nghe `mainWindow.on('move')` và `mainWindow.on('resize')` để tự động kéo cửa sổ KakaoTalk di chuyển theo khung nhìn của MultiWork; đồng thời tự động thu nhỏ KakaoTalk khi chuyển sang tab Zalo/Messenger/Modal và hiện lại khi quay lại tab KakaoTalk.
