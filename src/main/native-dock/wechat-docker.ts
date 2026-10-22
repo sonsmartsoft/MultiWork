@@ -319,16 +319,17 @@ function errorMessage(err: unknown): string {
 
 function dockErrorReason(err: unknown): string {
   const msg = errorMessage(err)
-  // PowerShell exit code 3 = no WeChat main window found.
-  if (msg.includes('code 3')) {
+  // The PowerShell exit code travels on the error's `code` property (Node
+  // does NOT embed it in the message text) — exit 3 = no WeChat window.
+  const exitCode = (err as { code?: unknown } | null)?.code
+  if (exitCode === 3 || msg.includes('code 3')) {
     return 'Không tìm thấy cửa sổ WeChat — hãy mở WeChat trước.'
   }
   if (msg.includes('chưa chạy')) {
     return 'WeChat chưa chạy — hãy mở WeChat trước.'
   }
   // Never leak the raw command/script into the UI: keep only the exit code.
-  const code = /code (\d+)/.exec(msg)
-  return `Không điều phối được cửa sổ WeChat (PowerShell lỗi${code ? `, mã ${code[1]}` : ''}). Hãy mở WeChat trước rồi thử lại.`
+  return `Không điều phối được cửa sổ WeChat (PowerShell lỗi${typeof exitCode === 'number' ? `, mã ${exitCode}` : ''}). Hãy mở WeChat trước rồi thử lại.`
 }
 
 /** Guide page rendered inside the WeChat chat view. */

@@ -314,16 +314,18 @@ function errorMessage(err: unknown): string {
 
 function dockErrorReason(err: unknown): string {
   const msg = errorMessage(err)
-  // PowerShell exit code 3 = FindWindow found no KakaoTalk window.
-  if (msg.includes('code 3')) {
+  // The PowerShell exit code travels on the error's `code` property (Node
+  // does NOT embed it in the message text) — exit 3 = FindWindow found no
+  // KakaoTalk window. Verified against real Node execFile behavior.
+  const exitCode = (err as { code?: unknown } | null)?.code
+  if (exitCode === 3 || msg.includes('code 3')) {
     return 'Không tìm thấy cửa sổ KakaoTalk — hãy mở KakaoTalk trước.'
   }
   if (msg.includes('chưa chạy')) {
     return 'KakaoTalk chưa chạy — hãy mở KakaoTalk trước.'
   }
   // Never leak the raw command/script into the UI: keep only the exit code.
-  const code = /code (\d+)/.exec(msg)
-  return `Không điều phối được cửa sổ KakaoTalk (PowerShell lỗi${code ? `, mã ${code[1]}` : ''}). Hãy mở KakaoTalk trước rồi thử lại.`
+  return `Không điều phối được cửa sổ KakaoTalk (PowerShell lỗi${typeof exitCode === 'number' ? `, mã ${exitCode}` : ''}). Hãy mở KakaoTalk trước rồi thử lại.`
 }
 
 /** Guide page rendered inside the Kakao chat view. */
