@@ -149,15 +149,22 @@ Add-Type @"
 using System;
 using System.Runtime.InteropServices;
 public static class MWWin32 {
-  [DllImport("user32.dll", SetLastError = true)]
-  public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+  [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+  static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+  // Managed wrappers around the raw import: PowerShell converts $null to
+  // "" when calling a string parameter, and user32 does NOT treat "" as
+  // the match-any wildcard (only a real NULL is) — a simulation with a
+  // fake user32 proved the script received "" and title lookups missed.
+  // The NULL must therefore be passed from inside C#, never by the script.
+  public static IntPtr FindByTitle(string title) { return FindWindow(null, title); }
+  public static IntPtr FindByClass(string cls) { return FindWindow(cls, null); }
   [DllImport("user32.dll", SetLastError = true)]
   public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
   [DllImport("user32.dll")]
   public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 }
 "@
-$h = [MWWin32]::FindWindow($null, "${KAKAO_WINDOW_TITLE}")
+$h = [MWWin32]::FindByTitle("${KAKAO_WINDOW_TITLE}")
 if ($h -eq [IntPtr]::Zero) { exit 3 }
 `
 

@@ -160,16 +160,21 @@ using System;
 using System.Runtime.InteropServices;
 public static class MWWin32WeChat {
   [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-  public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+  static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+  // See kakao-docker.ts: PowerShell turns $null into "" for string
+  // parameters, which user32 does not treat as a wildcard — the NULL is
+  // passed from inside C# via these wrappers instead.
+  public static IntPtr FindByTitle(string title) { return FindWindow(null, title); }
+  public static IntPtr FindByClass(string cls) { return FindWindow(cls, null); }
   [DllImport("user32.dll", SetLastError = true)]
   public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
   [DllImport("user32.dll")]
   public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 }
 "@
-$h = [MWWin32WeChat]::FindWindow("WeChatMainWndForPC", $null)
-if ($h -eq [IntPtr]::Zero) { $h = [MWWin32WeChat]::FindWindow($null, "WeChat") }
-if ($h -eq [IntPtr]::Zero) { $h = [MWWin32WeChat]::FindWindow($null, "微信") }
+$h = [MWWin32WeChat]::FindByClass("WeChatMainWndForPC")
+if ($h -eq [IntPtr]::Zero) { $h = [MWWin32WeChat]::FindByTitle("WeChat") }
+if ($h -eq [IntPtr]::Zero) { $h = [MWWin32WeChat]::FindByTitle("微信") }
 if ($h -eq [IntPtr]::Zero) { exit 3 }
 `
 
