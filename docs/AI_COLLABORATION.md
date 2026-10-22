@@ -56,3 +56,17 @@ File này là **Bảng điều phối trung tâm (Single Source of Truth)** trê
 - **IPC/Preload/Renderer**: kênh `wechat:get-status|launch|dock|undock`, bridge tương ứng, thanh trên cùng hiện trạng thái cài đặt + 3 nút Mở WeChat / Ghép cửa sổ / Thả cửa sổ khi tài khoản WeChat đang mở.
 - Kiểm chứng: `npm run typecheck` + `npm run build` sạch; `out/preload` vẫn đúng 2 file, require duy nhất `electron`; chạy thử thật — tài khoản WeChat hiện trang hướng dẫn native + đủ 3 nút điều phối.
 - Người dùng cũng hỏi về KakaoTalk "ở REV-02 không chạy được": nguyên nhân là máy người dùng chưa cài KakaoTalk Desktop (app báo đúng "chưa cài") và bản REV-02 chưa có bản vá quét registry; cả hai đã rõ ở các bản sau.
+
+---
+
+## 5. Bổ sung 22/10 — Kiểm chứng bằng mô phỏng + đề nghị REV-04 (Muse.ai)
+
+> Sau REV-03, người dùng test trên Windows thật và phát hiện cụm native-dock (KakaoTalk/WeChat) chưa từng chạy đúng trên Windows: (i) script PowerShell truyền qua `-Command` bị bóp méo, (ii) dò tìm thiếu đường theo tiến trình/App Paths, (iii) lỗi thô rò rỉ lên UI. Đã vá ở `aa98d34`. Người dùng yêu cầu Muse tự kiểm tra bằng mô phỏng thay vì đẩy việc test cho người dùng. Muse đã dựng bộ mô phỏng trong sandbox Linux:
+> - PowerShell 7.4.6 thật chạy đúng các file `.ps1` mà app sinh ra (trích xuất nguyên văn từ code qua stub `child_process`): parser 8/8 sạch, lớp C# Win32 biên dịch qua Add-Type 2/2 đạt.
+> - user32 giả lập (C# ghi log lời gọi): 11 kịch bản dock/minimize/undock đạt — gồm chuỗi dự phòng của WeChat (class `WeChatMainWndForPC` → tiêu đề) và mã thoát 3 khi không có cửa sổ.
+> - Giả lập `Get-Process`/`Get-ItemProperty`: 6 kịch bản dò tìm đạt (đang chạy / chỉ có registry kể cả tên Hàn '카카오톡' / chưa cài).
+> - Logic TypeScript với stub lỗi đúng dạng Node thật: 30/30 đạt.
+>
+> Mô phỏng bắt thêm 2 lỗi thật và đã vá: (1) mã thoát PowerShell nằm ở `err.code`, không nằm trong message — câu hướng dẫn "hãy mở app trước" trước đây không bao giờ kích hoạt (`56f93e1`); (2) PowerShell biến `$null` thành `""` khi gọi tham số string — user32 không coi `""` là wildcard nên tìm cửa sổ theo tiêu đề có thể trượt trên Windows thật; đã chuyển sang hàm bọc C# `FindByTitle`/`FindByClass` truyền NULL thật. Tổng 58/58 kiểm tra đạt. Bản phát hành: **v0.1.2**.
+>
+> **Đề nghị Architect review bổ sung (REV-04)** toàn bộ cụm native-dock sau bàn giao (module WeChat mới + 3 đợt vá Windows) — đây là phần code duy nhất chưa qua review của Architect. Giới hạn trung thực: mô phỏng thay được logic/script, không thay được Windows + KakaoTalk/WeChat thật trên máy người dùng; kết quả cuối vẫn chờ xác nhận 1 lần trên máy thật.
